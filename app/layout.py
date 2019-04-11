@@ -46,6 +46,7 @@ def layout(app):
                 app.setButtonHeight('Respond', 1)
                 app.setButtonWidth('Respond', 1)
                 app.addLabel('andons', '')
+                app.getLabelWidget('andons').config(font=font_bold)
         with app.tab('Setup'):
             app.setBg(bg)
             with app.labelFrame('Planned Cycle Time', row=0, column=0):

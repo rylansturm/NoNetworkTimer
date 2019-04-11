@@ -203,7 +203,14 @@ def function(app):
             Plan.block = Plan.schedule.get_block()
             new_block()
         Timer.tCycle = get_tCycle()
-        if now() < Plan.schedule.end[Plan.block-1]:
+        if now() < Plan.schedule.start[Plan.block-1]:
+            label = 'Shift: %s\tDate: %s\n\n\tAvailable Time: %s\n\nPCT: %s\t\tParts per Cycle: %s' % (
+                Plan.schedule.shift, datetime.date.today(),
+                Plan.schedule.available_time(), PCT.plan_cycle_time, Partsper.partsper)
+            app.setLabel('tCycle', label)
+            app.getLabelWidget('tCycle').config(font='arial 24')
+            Timer.color = 'green'
+        elif now() < Plan.schedule.end[Plan.block-1]:
             app.setLabel('tCycle', countdown_format(Timer.tCycle))
             app.getLabelWidget('tCycle').config(font='arial 148')
             screen_color()
@@ -225,6 +232,8 @@ def function(app):
         if Plan.new_shift:
             write_schedule(app)
             Plan.new_shift = False
+            Timer.andons = 0
+            Timer.responded = 0
 
         app.setLabel('PCT', PCT.plan_cycle_time)
         if PCT.adjusted:

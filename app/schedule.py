@@ -36,6 +36,12 @@ class Schedule:
             block = 1
         return block
 
+    def available_time(self):
+        available = 0
+        for time in range(4):
+            available += (self.end[time] - self.start[time]).total_seconds()
+        return int(available)
+
     @staticmethod
     def shift_select(now=None):
         if not now:
