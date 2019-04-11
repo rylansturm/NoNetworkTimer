@@ -13,7 +13,7 @@ def layout(app):
 
     app.setFont(font)
     app.setTitle(title)
-    app.setSize(*size)
+    app.setSize('fullscreen')
 
     with app.tabbedFrame('Tabs'):
 
