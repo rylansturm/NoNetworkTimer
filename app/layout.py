@@ -1,19 +1,22 @@
 from app.functionality import andon, adjust_schedule, update_default, set_PCT, set_partsper
+import os
 
+raspi = os.sys.platform == 'linux'
 title = 'Timer'
 size = (800, 480)
 bg = 'light grey'
 font = 16
 font_large = 'arial 60'
-font_setup_frames = 'arial 16 bold'
+font_bold = 'arial 16 bold'
 font_tCycle = 'arial 148'
+font_consistency = 'arial 24 bold'
 
 
 def layout(app):
 
     app.setFont(font)
     app.setTitle(title)
-    app.setSize('fullscreen')
+    app.setSize('fullscreen' if raspi else (800, 480))
 
     with app.tabbedFrame('Tabs'):
 
@@ -24,12 +27,19 @@ def layout(app):
                 app.addLabel('tCycle', row=0, column=0)
                 app.setLabelSticky('tCycle', 'news')
                 app.getLabelWidget('tCycle').config(font=font_tCycle)
-                app.addLabel('missed', row=1, column=0)
+            with app.frame('totals', row=1, column=0):
+                app.addLabel('consistency', row=0, colspan=3)
+                app.getLabelWidget('consistency').config(font=font_consistency)
+                app.addLabel('early', row=1, column=0)
+                app.addLabel('on_target', row=1, column=1)
+                app.addLabel('late', row=1, column=2)
+                for label in ['early', 'late', 'on_target']:
+                    app.getLabelWidget(label).config(font=font_bold)
             with app.frame('Andons', row=0, column=1, rowspan=2):
                 app.setFrameWidth('Andons', 2)
                 app.addButton('Andon', andon)
                 app.setButtonBg('Andon', '#AAAAAA')
-                app.getButtonWidget('Andon').config(font=font_setup_frames)
+                app.getButtonWidget('Andon').config(font=font_bold)
                 app.setButtonHeight('Andon', 10)
                 app.setButtonWidth('Andon', 1)
                 app.addButton('Respond', andon)
@@ -40,7 +50,7 @@ def layout(app):
             app.setBg(bg)
             with app.labelFrame('Planned Cycle Time', row=0, column=0):
                 app.setLabelFrameAnchor('Planned Cycle Time', 'n')
-                app.getLabelFrameWidget('Planned Cycle Time').config(font=font_setup_frames)
+                app.getLabelFrameWidget('Planned Cycle Time').config(font=font_bold)
                 app.setSticky('news')
                 # app.addLabel('PCT_label', 'PCT', row=0, column=0)
                 app.addLabel('PCT', row=0, column=0)
@@ -64,7 +74,7 @@ def layout(app):
                         app.setButtonWidth(name, 1)
             with app.labelFrame('Parts Per Cycle', row=0, column=1):
                 app.setLabelFrameAnchor('Parts Per Cycle', 'n')
-                app.getLabelFrameWidget('Parts Per Cycle').config(font=font_setup_frames)
+                app.getLabelFrameWidget('Parts Per Cycle').config(font=font_bold)
                 app.setSticky('news')
                 app.addLabel('partsper', row=0, column=0)
                 app.getLabelWidget('partsper').config(font=font_large)

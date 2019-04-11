@@ -35,7 +35,9 @@ class Timer:
     responded = 0
     color = 'light grey'
     avg_cycle = 0
-    missed = 0
+    late = 0
+    early = 0
+    on_target = 0
 
 
 class Plan:
@@ -68,8 +70,13 @@ def andon(btn):
 def cycle():
     if (now() - Timer.mark).total_seconds() > 2:
         Plan.total_cycles += 1
-        if Timer.tCycle < -(Timer.window * Partsper.partsper):
-            Timer.missed += 1
+        window = Timer.window * Partsper.partsper
+        if Timer.tCycle < -window:
+            Timer.late += 1
+        elif Timer.tCycle > window:
+            Timer.early += 1
+        else:
+            Timer.on_target += 1
         Timer.mark = now()
 
 
@@ -117,6 +124,9 @@ def new_block():
     end = Plan.schedule.end[Plan.block - 1]
     available_time = (end - start).total_seconds()
     Plan.total_cycles = 0
+    Timer.on_target = 0
+    Timer.late = 0
+    Timer.early = 0
     Plan.expected_cycles = int(available_time // (PCT.plan_cycle_time * Partsper.partsper))
     Timer.mark = now()
 
@@ -204,7 +214,13 @@ def function(app):
         if Timer.color != app.getLabelBg('tCycle'):
             app.setLabelBg('tCycle', Timer.color)
             print('color change: %s' % Timer.color)
-        app.setLabel('missed', 'Missed: %s' % Timer.missed)
+        try:
+            app.setLabel('consistency', 'Consistency: %s%%' % int((Timer.on_target / Plan.total_cycles) * 100))
+        except ZeroDivisionError:
+            app.setLabel('consistency', 'Consistency: N/A')
+        app.setLabel('late', 'Late: %s' % Timer.late)
+        app.setLabel('early', 'Early: %s' % Timer.early)
+        app.setLabel('on_target', 'On Time: %s' % Timer.on_target)
         app.setLabel('andons', get_andons())
         if Plan.new_shift:
             write_schedule(app)
