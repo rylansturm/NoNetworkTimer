@@ -195,6 +195,7 @@ def function(app):
         Timer.tCycle = get_tCycle()
         if now() < Plan.schedule.end[Plan.block-1]:
             app.setLabel('tCycle', countdown_format(Timer.tCycle))
+            app.getLabelWidget('tCycle').config(font='arial 148')
             screen_color()
         else:
             app.setLabel('tCycle', '%s / %s' % (Plan.total_cycles, Plan.expected_cycles))

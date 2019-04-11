@@ -6,7 +6,7 @@ bg = 'light grey'
 font = 16
 font_large = 'arial 60'
 font_setup_frames = 'arial 16 bold'
-font_tCycle = 'arial 120'
+font_tCycle = 'arial 148'
 
 
 def layout(app):
