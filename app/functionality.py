@@ -157,6 +157,13 @@ def get_andons():
         return Timer.andons
 
 
+def shut_down(btn):
+    if raspi:
+        os.system('sudo shutdown now')
+    else:
+        print('This would normally shut down a Raspberry Pi. Windows is immune!')
+
+
 def schedule_format(time):
     return datetime.datetime.strftime(time, '%I:%M %p')
 

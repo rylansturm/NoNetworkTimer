@@ -1,4 +1,4 @@
-from app.functionality import andon, adjust_schedule, update_default, set_PCT, set_partsper, adjust_cycles
+from app.functionality import andon, adjust_schedule, update_default, set_PCT, set_partsper, adjust_cycles, shut_down
 import os
 
 raspi = os.sys.platform == 'linux'
@@ -116,4 +116,7 @@ def layout(app):
                     for button in ['start%sDN', 'start%sUP', 'end%sDN', 'end%sUP']:
                         app.setButton(button % block, '+5 min' if button[-1] == 'P' else '-5 min')
             app.addButton('Update Default', update_default, row=2, column=0, colspan=2)
+            app.addButton('Shut Down', shut_down)
+            app.setButtonFg('Shut Down', 'red')
+            app.setButtonBg('Shut Down', 'black')
     return app
