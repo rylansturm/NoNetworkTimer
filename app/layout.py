@@ -1,4 +1,4 @@
-from app.functionality import andon, adjust_schedule, update_default, set_PCT, set_partsper
+from app.functionality import andon, adjust_schedule, update_default, set_PCT, set_partsper, adjust_cycles
 import os
 
 raspi = os.sys.platform == 'linux'
@@ -9,7 +9,7 @@ font = 16
 font_large = 'arial 60'
 font_bold = 'arial 16 bold'
 font_tCycle = 'arial 148'
-font_consistency = 'arial 24 bold'
+font_glance = 'arial 24 bold'
 
 
 def layout(app):
@@ -28,13 +28,17 @@ def layout(app):
                 app.setLabelSticky('tCycle', 'news')
                 app.getLabelWidget('tCycle').config(font=font_tCycle)
             with app.frame('totals', row=1, column=0):
-                app.addLabel('consistency', row=0, colspan=3)
-                app.getLabelWidget('consistency').config(font=font_consistency)
+                with app.frame('glance', row=0, colspan=3):
+                    app.addLabel('consistency', row=0, column=2)
+                    app.addLabel('ahead', row=0, column=1)
+                    app.getLabelWidget('consistency').config(font=font_glance)
+                    app.getLabelWidget('ahead').config(font=font_glance)
                 app.addLabel('early', row=1, column=0)
                 app.addLabel('on_target', row=1, column=1)
                 app.addLabel('late', row=1, column=2)
                 for label in ['early', 'late', 'on_target']:
                     app.getLabelWidget(label).config(font=font_bold)
+                    app.setLabelSubmitFunction(label, adjust_cycles)
             with app.frame('Andons', row=0, column=1, rowspan=2):
                 app.setFrameWidth('Andons', 2)
                 app.addButton('Andon', andon)

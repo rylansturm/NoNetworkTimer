@@ -39,13 +39,21 @@ class Timer:
     early = 0
     on_target = 0
 
+    @staticmethod
+    def get_ahead():
+        expected = Plan.block_time_elapsed() // (Partsper.partsper * PCT.plan_cycle_time)
+        return int(Plan.total_cycles() - expected)
+
 
 class Plan:
     schedule = Schedule()
     new_shift = True
     expected_cycles = 0
-    total_cycles = 0
     block = 0
+
+    @staticmethod
+    def total_cycles():
+        return Timer.late + Timer.early + Timer.on_target
 
     @staticmethod
     def block_remaining_time():
@@ -69,7 +77,6 @@ def andon(btn):
 
 def cycle():
     if (now() - Timer.mark).total_seconds() > 2:
-        Plan.total_cycles += 1
         window = Timer.window * Partsper.partsper
         if Timer.tCycle < -window:
             Timer.late += 1
@@ -78,6 +85,10 @@ def cycle():
         else:
             Timer.on_target += 1
         Timer.mark = now()
+
+
+def adjust_cycles(btn):
+    exec('Timer.%s += 1' % btn)
 
 
 def set_PCT(btn):
@@ -123,7 +134,6 @@ def new_block():
     start = Plan.schedule.start[Plan.block - 1]
     end = Plan.schedule.end[Plan.block - 1]
     available_time = (end - start).total_seconds()
-    Plan.total_cycles = 0
     Timer.on_target = 0
     Timer.late = 0
     Timer.early = 0
@@ -208,21 +218,29 @@ def function(app):
                 Plan.schedule.shift, datetime.date.today(),
                 Plan.schedule.available_time(), PCT.plan_cycle_time, Partsper.partsper)
             app.setLabel('tCycle', label)
-            app.getLabelWidget('tCycle').config(font='arial 24')
+            app.getLabelWidget('tCycle').config(font='arial 48')
+            app.setLabel('ahead', 'Ahead: N/A')
             Timer.color = 'green'
         elif now() < Plan.schedule.end[Plan.block-1]:
             app.setLabel('tCycle', countdown_format(Timer.tCycle))
             app.getLabelWidget('tCycle').config(font='arial 148')
             screen_color()
+            ahead = Timer.get_ahead()
+            if ahead >= 0:
+                ahead_label = 'Ahead: %s' % ahead
+            else:
+                ahead_label = 'Behind: %s' % -ahead
+            app.setLabel('ahead', ahead_label)
         else:
-            app.setLabel('tCycle', '%s / %s' % (Plan.total_cycles, Plan.expected_cycles))
+            app.setLabel('tCycle', '%s / %s' % (Plan.total_cycles(), Plan.expected_cycles))
             app.getLabelWidget('tCycle').config(font='arial 64')
             Timer.color = 'green'
+            app.setLabel('ahead', 'Ahead: N/A')
         if Timer.color != app.getLabelBg('tCycle'):
             app.setLabelBg('tCycle', Timer.color)
             print('color change: %s' % Timer.color)
         try:
-            app.setLabel('consistency', 'Consistency: %s%%' % int((Timer.on_target / Plan.total_cycles) * 100))
+            app.setLabel('consistency', 'Consistency: %s%%' % int((Timer.on_target / Plan.total_cycles()) * 100))
         except ZeroDivisionError:
             app.setLabel('consistency', 'Consistency: N/A')
         app.setLabel('late', 'Late: %s' % Timer.late)
