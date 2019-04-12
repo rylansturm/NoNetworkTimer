@@ -28,7 +28,7 @@ def layout(app):
                 app.setLabelSticky('tCycle', 'news')
                 app.getLabelWidget('tCycle').config(font=font_tCycle)
             with app.frame('totals', row=1, column=0):
-                with app.frame('glance', row=0, colspan=3):
+                with app.frame('glance', row=0, colspan=4):
                     app.addLabel('consistency', row=0, column=2)
                     app.addLabel('ahead', row=0, column=1)
                     app.getLabelWidget('consistency').config(font=font_glance)
@@ -36,6 +36,7 @@ def layout(app):
                 app.addLabel('early', row=1, column=0)
                 app.addLabel('on_target', row=1, column=1)
                 app.addLabel('late', row=1, column=2)
+                app.addOptionBox('past_10', ['00:00:00'], row=1, column=3)
                 for label in ['early', 'late', 'on_target']:
                     app.getLabelWidget(label).config(font=font_bold)
                     app.setLabelSubmitFunction(label, adjust_cycles)
@@ -67,7 +68,7 @@ def layout(app):
                     app.setEntryAlign('new_pct', 'center')
                     for button in range(1, 10):
                         name = '%s_PCT' % button
-                        app.addButton(name, set_PCT, row=((button-1)//3)+1, column=(button + 2) % 3)
+                        app.addButton(name, set_PCT, row=((button-1)//3)+1, column=(button+2) % 3)
                         app.setButton(name, button)
                         app.setButtonWidth(name, 1)
                     col = 0

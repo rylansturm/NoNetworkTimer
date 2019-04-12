@@ -38,6 +38,7 @@ class Timer:
     late = 0
     early = 0
     on_target = 0
+    past_10 = ["00:00:00"]
 
     @staticmethod
     def get_ahead():
@@ -84,6 +85,9 @@ def cycle():
             Timer.early += 1
         else:
             Timer.on_target += 1
+        Timer.past_10.append(countdown_format(int((now() - Timer.mark).total_seconds())))
+        if len(Timer.past_10) > 10:
+            Timer.past_10 = Timer.past_10[1:]
         Timer.mark = now()
 
 
@@ -148,7 +152,7 @@ def get_tCycle():
 
 def get_andons():
     if Timer.responded != Timer.andons:
-        return '%s + %s' % (Timer.andons - Timer.responded, Timer.responded)
+        return '%s + %s' % (Timer.responded, Timer.andons - Timer.responded)
     else:
         return Timer.andons
 
@@ -213,6 +217,9 @@ def function(app):
             Plan.block = Plan.schedule.get_block()
             new_block()
         Timer.tCycle = get_tCycle()
+        if Timer.past_10[-1] != app.getOptionBox('past_10'):
+            app.changeOptionBox('past_10', Timer.past_10)
+            app.setOptionBox('past_10', Timer.past_10[-1])
         if now() < Plan.schedule.start[Plan.block-1]:
             label = 'Shift: %s\tDate: %s\n\n\tAvailable Time: %s\n\nPCT: %s\t\tParts per Cycle: %s' % (
                 Plan.schedule.shift, datetime.date.today(),
