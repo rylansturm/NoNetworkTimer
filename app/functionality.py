@@ -13,20 +13,6 @@ c = configparser.ConfigParser()
 c.read('setup.ini')
 
 
-class PCT:
-    plan_cycle_time = int(c['Values']['pct'])
-    new = ''
-    adjusted = False
-    adjust = False
-
-
-class Partsper:
-    partsper = int(c['Values']['partsper'])
-    new = ''
-    adjusted = False
-    adjust = False
-
-
 class Timer:
     window = 3
     tCycle = 0
@@ -41,16 +27,122 @@ class Timer:
     past_10 = ["00:00:00"]
 
     @staticmethod
+    def get_tCycle():
+        Timer.tCycle = (PCT.plan_cycle_time * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
+        return Timer.tCycle
+
+    @staticmethod
+    def countdown_format(seconds: int):
+        """ takes seconds and returns ":SS", "MM:SS", or "HH:MM:SS" """
+        sign = -1 if seconds < 0 else 1
+        seconds = seconds * sign
+        sign_label = '-' if sign < 0 else ''
+        hours, minutes = divmod(seconds, 3600)
+        minutes, seconds = divmod(minutes, 60)
+        hour_label = '%sh:%02d' % (hours, minutes)
+        minute_label = '%s:%02d' % (minutes, seconds)
+        second_label = sign_label + ':%02d' % seconds
+        return seconds if hours < 0 else hour_label if hours else minute_label if minutes else second_label
+
+    @staticmethod
     def get_ahead():
         expected = Plan.block_time_elapsed() // (Partsper.partsper * PCT.plan_cycle_time)
         return int(Plan.total_cycles() - expected)
+
+    @staticmethod
+    def cycle():
+        if (Plan.now() - Timer.mark).total_seconds() > 2:
+            window = Timer.window * Partsper.partsper
+            if Timer.tCycle < -window:
+                Timer.late += 1
+            elif Timer.tCycle > window:
+                Timer.early += 1
+            else:
+                Timer.on_target += 1
+            Timer.past_10.append(Timer.countdown_format(int((Plan.now() - Timer.mark).total_seconds())))
+            if len(Timer.past_10) > 10:
+                Timer.past_10 = Timer.past_10[1:]
+            Timer.mark = Plan.now()
+
+    @staticmethod
+    def andon(btn):
+        if btn == 'Andon':
+            Timer.andons += 1
+        if btn == 'Respond':
+            Timer.responded = Timer.andons
+
+    @staticmethod
+    def adjust_cycles(btn):
+        exec('Timer.%s += 1' % btn)
+
+    @staticmethod
+    def screen_color():
+        window = Timer.window * Partsper.partsper
+        if Timer.tCycle > window:
+            Timer.color = 'light grey'
+        elif -window <= Timer.tCycle <= window:
+            Timer.color = 'yellow'
+        else:
+            Timer.color = 'red'
+
+    @staticmethod
+    def run_lights():
+        if Timer.responded != Timer.andons:
+            Light.set_all(1, 0, 0)
+        else:
+            Light.set_all(0, 0, 1)
+
+    @staticmethod
+    def get_andons():
+        if Timer.responded != Timer.andons:
+            return '%s + %s' % (Timer.responded, Timer.andons - Timer.responded)
+        else:
+            return Timer.andons
+
+
+class PCT:
+    plan_cycle_time = int(c['Values']['pct'])
+    new = ''
+    adjusted = False
+    adjust = False
+
+    @staticmethod
+    def set_PCT(btn):
+        if btn == 'OK_PCT':
+            PCT.adjust = True
+        elif btn == 'Back_PCT':
+            PCT.adjusted = True
+            PCT.new = '-'
+        else:
+            PCT.adjusted = True
+            PCT.new = btn[0]
+
+
+class Partsper:
+    partsper = int(c['Values']['partsper'])
+    new = ''
+    adjusted = False
+    adjust = False
+
+    @staticmethod
+    def set_partsper(btn):
+        if btn == 'OK_partsper':
+            Partsper.adjust = True
+        elif btn == 'Back_partsper':
+            Partsper.adjusted = True
+            Partsper.new = '-'
+        else:
+            Partsper.adjusted = True
+            Partsper.new = btn[0]
 
 
 class Plan:
     schedule = Schedule()
     new_shift = True
+    schedule_adjusted = False
     expected_cycles = 0
     block = 0
+    total_time = 0
 
     @staticmethod
     def total_cycles():
@@ -58,103 +150,65 @@ class Plan:
 
     @staticmethod
     def block_remaining_time():
-        return (Plan.schedule.end[Plan.block-1] - now()).total_seconds()
+        return (Plan.schedule.end[Plan.block-1] - Plan.now()).total_seconds()
 
     @staticmethod
     def block_time_elapsed():
-        return (now() - Plan.schedule.start[Plan.block-1]).total_seconds()
+        return (Plan.now() - Plan.schedule.start[Plan.block-1]).total_seconds()
 
+    @staticmethod
+    def new_block():
+        start = Plan.schedule.start[Plan.block - 1]
+        end = Plan.schedule.end[Plan.block - 1]
+        available_time = (end - start).total_seconds()
+        Timer.on_target = 0
+        Timer.late = 0
+        Timer.early = 0
+        Plan.expected_cycles = int(available_time // (PCT.plan_cycle_time * Partsper.partsper))
 
-def now():
-    return datetime.datetime.now()
+    @staticmethod
+    def now():
+        return datetime.datetime.now()
 
+    @staticmethod
+    def schedule_format(time):
+        return datetime.datetime.strftime(time, '%I:%M %p')
 
-def andon(btn):
-    if btn == 'Andon':
-        Timer.andons += 1
-    if btn == 'Respond':
-        Timer.responded = Timer.andons
+    @staticmethod
+    def write_schedule(app):
+        Plan.total_time = 0
+        for block in [1, 2, 3, 4]:
+            start = Plan.schedule.start[block - 1]
+            end = Plan.schedule.end[block - 1]
+            time = int((end-start).total_seconds())
+            Plan.total_time += time
+            app.setLabel('start%s' % block, Plan.schedule_format(start))
+            app.setLabel('end%s' % block, Plan.schedule_format(end))
+            app.setLabel('block%sTime' % block, '%s seconds' % time)
+        app.setLabel('availableTime', '%s Total Seconds' % Plan.total_time)
 
+    @staticmethod
+    def adjust_schedule(btn):
+        delta = datetime.timedelta(minutes=5)
+        time = btn[0]
+        direction = btn[-2]
+        block = int(btn[-3])
+        if time == 's':
+            Plan.schedule.start[block - 1] += delta if direction == 'U' else -delta
+        elif time == 'e':
+            Plan.schedule.end[block - 1] += delta if direction == 'U' else -delta
+        Plan.schedule_adjusted = True
 
-def cycle():
-    if (now() - Timer.mark).total_seconds() > 2:
-        window = Timer.window * Partsper.partsper
-        if Timer.tCycle < -window:
-            Timer.late += 1
-        elif Timer.tCycle > window:
-            Timer.early += 1
-        else:
-            Timer.on_target += 1
-        Timer.past_10.append(countdown_format(int((now() - Timer.mark).total_seconds())))
-        if len(Timer.past_10) > 10:
-            Timer.past_10 = Timer.past_10[1:]
-        Timer.mark = now()
-
-
-def adjust_cycles(btn):
-    exec('Timer.%s += 1' % btn)
-
-
-def set_PCT(btn):
-    if btn == 'OK_PCT':
-        PCT.adjust = True
-    elif btn == 'Back_PCT':
-        PCT.adjusted = True
-        PCT.new = '-'
-    else:
-        PCT.adjusted = True
-        PCT.new = btn[0]
-
-
-def set_partsper(btn):
-    if btn == 'OK_partsper':
-        Partsper.adjust = True
-    elif btn == 'Back_partsper':
-        Partsper.adjusted = True
-        Partsper.new = '-'
-    else:
-        Partsper.adjusted = True
-        Partsper.new = btn[0]
-
-
-def screen_color():
-    window = Timer.window * Partsper.partsper
-    if Timer.tCycle > window:
-        Timer.color = 'light grey'
-    elif -window <= Timer.tCycle <= window:
-        Timer.color = 'yellow'
-    else:
-        Timer.color = 'red'
-
-
-def run_lights():
-    if Timer.responded != Timer.andons:
-        Light.set_all(1, 0, 0)
-    else:
-        Light.set_all(0, 0, 1)
-
-
-def new_block():
-    start = Plan.schedule.start[Plan.block - 1]
-    end = Plan.schedule.end[Plan.block - 1]
-    available_time = (end - start).total_seconds()
-    Timer.on_target = 0
-    Timer.late = 0
-    Timer.early = 0
-    Plan.expected_cycles = int(available_time // (PCT.plan_cycle_time * Partsper.partsper))
-    Timer.mark = now()
-
-
-def get_tCycle():
-    Timer.tCycle = (PCT.plan_cycle_time * Partsper.partsper) - int((now() - Timer.mark).total_seconds())
-    return Timer.tCycle
-
-
-def get_andons():
-    if Timer.responded != Timer.andons:
-        return '%s + %s' % (Timer.responded, Timer.andons - Timer.responded)
-    else:
-        return Timer.andons
+    @staticmethod
+    def update_default(btn):
+        c = configparser.ConfigParser()
+        c.read('schedules.ini')
+        start = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.start])
+        end = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.end])
+        c[Plan.schedule.shift]['start'] = start
+        c[Plan.schedule.shift]['end'] = end
+        with open('schedules.ini', 'w') as configfile:
+            c.write(configfile)
 
 
 def shut_down(btn):
@@ -164,70 +218,22 @@ def shut_down(btn):
         print('This would normally shut down a Raspberry Pi. Windows is immune!')
 
 
-def schedule_format(time):
-    return datetime.datetime.strftime(time, '%I:%M %p')
-
-
-def countdown_format(seconds: int):
-    """ takes seconds and returns ":SS", "MM:SS", or "HH:MM:SS" """
-    sign = -1 if seconds < 0 else 1
-    seconds = seconds * sign
-    sign_label = '-' if sign < 0 else ''
-    hours, minutes = divmod(seconds, 3600)
-    minutes, seconds = divmod(minutes, 60)
-    hour_label = '%sh:%02d' % (hours, minutes)
-    minute_label = '%s:%02d' % (minutes, seconds)
-    second_label = sign_label + ':%02d' % seconds
-    return seconds if hours < 0 else hour_label if hours else minute_label if minutes else second_label
-
-
-def write_schedule(app):
-    for block in [1, 2, 3, 4]:
-        start = Plan.schedule.start[block - 1]
-        end = Plan.schedule.end[block - 1]
-        app.setLabel('start%s' % block, schedule_format(start))
-        app.setLabel('end%s' % block, schedule_format(end))
-
-
-def adjust_schedule(btn):
-    delta = datetime.timedelta(minutes=5)
-    time = btn[0]
-    direction = btn[-2]
-    block = int(btn[-3])
-    if time == 's':
-        Plan.schedule.start[block - 1] += delta if direction == 'U' else -delta
-    elif time == 'e':
-        Plan.schedule.end[block - 1] += delta if direction == 'U' else -delta
-    Plan.new_shift = True
-    new_block()
-
-
-def update_default(btn):
-    c = configparser.ConfigParser()
-    c.read('schedules.ini')
-    start = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.start])
-    end = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.end])
-    c[Plan.schedule.shift]['start'] = start
-    c[Plan.schedule.shift]['end'] = end
-    with open('schedules.ini', 'w') as configfile:
-        c.write(configfile)
-
-
 def function(app):
     def counting():
         if raspi:
-            run_lights()
-        if now() > Plan.schedule.schedule()[-1]:
+            Timer.run_lights()
+        if Plan.now() > Plan.schedule.schedule()[-1]:
             Plan.new_shift = True
             Plan.schedule = Schedule()
         if Plan.block != Plan.schedule.get_block():
             Plan.block = Plan.schedule.get_block()
-            new_block()
-        Timer.tCycle = get_tCycle()
+            Plan.new_block()
+            Timer.mark = Plan.now()
+        Timer.tCycle = Timer.get_tCycle()
         if Timer.past_10[-1] != app.getOptionBox('past_10'):
             app.changeOptionBox('past_10', Timer.past_10)
             app.setOptionBox('past_10', Timer.past_10[-1])
-        if now() < Plan.schedule.start[Plan.block-1]:
+        if Plan.now() < Plan.schedule.start[Plan.block-1]:
             label = 'Shift: %s\tDate: %s\n\n\tAvailable Time: %s\n\nPCT: %s\t\tParts per Cycle: %s' % (
                 Plan.schedule.shift, datetime.date.today(),
                 Plan.schedule.available_time(), PCT.plan_cycle_time, Partsper.partsper)
@@ -235,10 +241,10 @@ def function(app):
             app.getLabelWidget('tCycle').config(font='arial 48')
             app.setLabel('ahead', 'Ahead: N/A')
             Timer.color = 'green'
-        elif now() < Plan.schedule.end[Plan.block-1]:
-            app.setLabel('tCycle', countdown_format(Timer.tCycle))
+        elif Plan.now() < Plan.schedule.end[Plan.block-1]:
+            app.setLabel('tCycle', Timer.countdown_format(Timer.tCycle))
             app.getLabelWidget('tCycle').config(font='arial 148')
-            screen_color()
+            Timer.screen_color()
             ahead = Timer.get_ahead()
             if ahead >= 0:
                 ahead_label = 'Ahead: %s' % ahead
@@ -249,7 +255,7 @@ def function(app):
             app.setLabel('tCycle', '%s / %s' % (Plan.total_cycles(), Plan.expected_cycles))
             app.getLabelWidget('tCycle').config(font='arial 64')
             Timer.color = 'green'
-            app.setLabel('ahead', 'Ahead: N/A')
+            app.setLabel('ahead', 'BREAK')
         if Timer.color != app.getLabelBg('tCycle'):
             app.setLabelBg('tCycle', Timer.color)
             print('color change: %s' % Timer.color)
@@ -260,9 +266,12 @@ def function(app):
         app.setLabel('late', 'Late: %s' % Timer.late)
         app.setLabel('early', 'Early: %s' % Timer.early)
         app.setLabel('on_target', 'On Time: %s' % Timer.on_target)
-        app.setLabel('andons', get_andons())
+        app.setLabel('andons', Timer.get_andons())
+        if Plan.schedule_adjusted:
+            Plan.write_schedule(app)
+            Plan.schedule_adjusted = False
         if Plan.new_shift:
-            write_schedule(app)
+            Plan.write_schedule(app)
             Plan.new_shift = False
             Timer.andons = 0
             Timer.responded = 0
@@ -312,6 +321,6 @@ def function(app):
                 c.write(configfile)
     app.registerEvent(counting)
     app.setPollTime(50)
-    app.bindKey('<space>', cycle)
-    app.bindKey('1', cycle)
+    app.bindKey('<space>', Timer.cycle)
+    app.bindKey('1', Timer.cycle)
     return app
