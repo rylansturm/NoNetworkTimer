@@ -246,10 +246,11 @@ def function(app):
             app.getLabelWidget('tCycle').config(font='arial 148')
             Timer.screen_color()
             ahead = Timer.get_ahead()
+            current_expected = int(Plan.block_time_elapsed() // (Partsper.partsper * PCT.plan_cycle_time))
             if ahead >= 0:
-                ahead_label = 'Ahead: %s' % ahead
+                ahead_label = 'Ahead: %s (%s/%s)' % (ahead, Plan.total_cycles(), current_expected)
             else:
-                ahead_label = 'Behind: %s' % -ahead
+                ahead_label = 'Behind: %s (%s/%s)' % (-ahead, Plan.total_cycles(), current_expected)
             app.setLabel('ahead', ahead_label)
         else:
             app.setLabel('tCycle', '%s / %s' % (Plan.total_cycles(), Plan.expected_cycles))
