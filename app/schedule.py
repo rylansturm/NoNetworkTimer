@@ -36,6 +36,12 @@ class Schedule:
             block = 1
         return block
 
+    def block_time(self):
+        block = self.get_block()
+        start = self.start[block-1]
+        end = self.end[block-1]
+        return (end - start).total_seconds()
+
     def available_time(self):
         available = 0
         for time in range(4):

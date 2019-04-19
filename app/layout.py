@@ -1,4 +1,19 @@
-from app.functionality import Timer, PCT, Plan, Partsper, shut_down
+"""
+The app is passed to the 'layout' function which creates all labels, buttons, tabs, etc.
+
+Current app layout is:
+
+Three tabs:
+    1.  Main
+            the current cycle time, as well as live metrics and buttons for the andon system
+    2.  Setup
+            two keypads for adjusting the PCT and Partsper variables
+    3.  Schedule
+            shows the start/stop times for each block with buttons to adjust
+"""
+
+
+from app.functionality import Timer, PCT, Plan, Partsper, Andon
 import os
 
 raspi = os.sys.platform == 'linux'
@@ -33,21 +48,24 @@ def layout(app):
                     app.addLabel('ahead', row=0, column=1)
                     app.getLabelWidget('consistency').config(font=font_glance)
                     app.getLabelWidget('ahead').config(font=font_glance)
+                    app.setLabelRelief('consistency', 'ridge')
+                    app.setLabelRelief('ahead', 'ridge')
                 app.addLabel('early', row=1, column=0)
                 app.addLabel('on_target', row=1, column=1)
                 app.addLabel('late', row=1, column=2)
                 app.addOptionBox('past_10', ['00:00:00'], row=1, column=3)
                 for label in ['early', 'late', 'on_target']:
+                    app.setLabelRelief(label, 'ridge')
                     app.getLabelWidget(label).config(font=font_bold)
                     app.setLabelSubmitFunction(label, Timer.adjust_cycles)
             with app.frame('Andons', row=0, column=1, rowspan=2):
                 app.setFrameWidth('Andons', 2)
-                app.addButton('Andon', Timer.andon)
+                app.addButton('Andon', Andon.andon)
                 app.setButtonBg('Andon', '#AAAAAA')
                 app.getButtonWidget('Andon').config(font=font_bold)
                 app.setButtonHeight('Andon', 10)
                 app.setButtonWidth('Andon', 1)
-                app.addButton('Respond', Timer.andon)
+                app.addButton('Respond', Andon.andon)
                 app.setButtonHeight('Respond', 1)
                 app.setButtonWidth('Respond', 1)
                 app.addLabel('andons', '')
@@ -116,7 +134,7 @@ def layout(app):
                     app.addLabel('block%sTime' % block, row=2, colspan=3)
             app.addLabel('availableTime', row=2, column=0, colspan=2)
             app.addButton('Update Default', Plan.update_default, row=3, column=0, colspan=2)
-            app.addButton('Shut Down', shut_down)
+            app.addButton('Shut Down', Timer.shut_down)
             app.setButtonFg('Shut Down', 'red')
             app.setButtonBg('Shut Down', 'black')
     return app
