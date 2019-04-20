@@ -55,6 +55,7 @@ c.read('setup.ini')
 class PCT:
     """pct -> int; number of seconds planned for cycling each part through flow"""
     planned_cycle_time = int(c['Values']['pct'])
+    catch_up_pct = planned_cycle_time
 
     # new/adjusted/adjust are read by the gui to determine if/when to write changes
     new = ''
@@ -71,6 +72,19 @@ class PCT:
         else:
             PCT.adjusted = True
             PCT.new = btn[0]
+
+    @staticmethod
+    def catch_up(btn):
+        Timer.show_catch_up = True
+
+    @staticmethod
+    def cycles_until_caught_up():
+        ahead = (Timer.total_cycles() * PCT.planned_cycle_time * Partsper.partsper) - Plan.block_time_elapsed()
+        diff = (PCT.catch_up_pct - PCT.planned_cycle_time) * Partsper.partsper
+        try:
+            return int(ahead / diff)
+        except ZeroDivisionError:
+            return 'infinite'
 
 
 class Partsper:
@@ -135,11 +149,23 @@ class Timer:
     past_10 = ["00:00:00"]
     update_history = False
     block_history = {}
+    show_catch_up = False
+    hide_catch_up = True
+    catch_up_mode = False
 
     @staticmethod
     def get_tCycle():
-        Timer.tCycle = (PCT.planned_cycle_time * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
+        if not Timer.catch_up_mode:
+            Timer.tCycle = (PCT.planned_cycle_time * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
+        else:
+            Timer.tCycle = (PCT.catch_up_pct * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
         return Timer.tCycle
+
+    @staticmethod
+    def set_catch_up(btn):
+        if btn == 'OK':
+            Timer.catch_up_mode = True
+            Timer.hide_catch_up = True
 
     @staticmethod
     def countdown_format(seconds: int):
@@ -340,6 +366,7 @@ def function(app):
             current_expected = int(Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time))
             if ahead >= 0:
                 ahead_label = 'Ahead: %s (%s/%s)' % (ahead, Timer.total_cycles(), current_expected)
+                Timer.catch_up_mode = False
             else:
                 ahead_label = 'Behind: %s (%s/%s)' % (-ahead, Timer.total_cycles(), current_expected)
             app.setLabel('ahead', ahead_label)
@@ -411,6 +438,24 @@ def function(app):
             c['Values']['partsper'] = str(Partsper.partsper)
             with open('setup.ini', 'w') as configfile:
                 c.write(configfile)
+        PCT.catch_up_pct = app.getScale('catch_up_scale')
+        app.setScaleRange('catch_up_scale', int(PCT.planned_cycle_time * .6), PCT.planned_cycle_time,
+                          curr=PCT.catch_up_pct)
+        app.showScaleValue('catch_up_scale', show=True)
+        app.setScaleIncrement('catch_up_scale', 1)
+        app.setLabel('cycles_until_caught_up', '%s sec/part will catch\n  you up in %s cycles' %
+                     (PCT.catch_up_pct, PCT.cycles_until_caught_up()))
+        if Timer.show_catch_up:
+            app.setScale('catch_up_scale', PCT.planned_cycle_time)
+            app.showSubWindow('Catch Up?')
+            Timer.show_catch_up = False
+        if Timer.hide_catch_up:
+            app.hideSubWindow('Catch Up?')
+            Timer.hide_catch_up = False
+        if Timer.catch_up_mode:
+            app.setStatusbar('Catch Up Mode', 0)
+        else:
+            app.setStatusbar('', 0)
     app.registerEvent(counting)
     app.setPollTime(50)
     app.bindKey('<space>', Timer.cycle)

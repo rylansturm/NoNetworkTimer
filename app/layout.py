@@ -50,6 +50,7 @@ def layout(app):
                     app.getLabelWidget('ahead').config(font=font_glance)
                     app.setLabelRelief('consistency', 'ridge')
                     app.setLabelRelief('ahead', 'ridge')
+                    app.setLabelSubmitFunction('ahead', PCT.catch_up)
                 app.addLabel('early', row=1, column=0)
                 app.addLabel('on_target', row=1, column=1)
                 app.addLabel('late', row=1, column=2)
@@ -137,4 +138,14 @@ def layout(app):
             app.addButton('Shut Down', Timer.shut_down)
             app.setButtonFg('Shut Down', 'red')
             app.setButtonBg('Shut Down', 'black')
+
+    with app.subWindow('Catch Up?'):
+        app.addLabel('catch_up_label', 'Cycle faster until you catch up to the plan?')
+        app.addScale('catch_up_scale')
+        app.addLabel('cycles_until_caught_up')
+        app.setScaleWidth('catch_up_scale', 45)
+        app.addButton('OK', Timer.set_catch_up)
+
+    app.addStatusbar(fields=1)
+
     return app
