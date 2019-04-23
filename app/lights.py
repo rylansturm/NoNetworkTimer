@@ -3,8 +3,8 @@ from gpiozero import LED
 
 class Light:
     r = LED(25, initial_value=False)
-    g = LED(26, initial_value=False)
-    y = LED(24, initial_value=False)
+    g = LED(24, initial_value=False)
+    y = LED(26, initial_value=False)
 
     @staticmethod
     def red(state=False):
