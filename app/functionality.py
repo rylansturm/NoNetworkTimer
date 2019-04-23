@@ -315,10 +315,10 @@ class Plan:
                 Plan.schedule.end[block] = Plan.schedule.start[block]
             if block != 3 and Plan.schedule.end[block] > Plan.schedule.start[block+1]:
                 Plan.schedule.end[block] -= delta
-            if Plan.schedule.end[block].hour == shifts[Plan.shift][1] and Plan.schedule.end[block].minute > 0:
+            if Plan.schedule.end[block].hour == shifts[Plan.shift][1] and Plan.schedule.end[block].minute > 15:
                 if Plan.shift != 'Grave':
                     Plan.schedule.end[block] -= delta
-                elif Plan.schedule.end[block].hour == 7 and Plan.schedule.end[block].minute > 0:
+                elif Plan.schedule.end[block].hour == 7 and Plan.schedule.end[block].minute > 15:
                     Plan.schedule.end[block] -= delta
         Plan.schedule_adjusted = True
         Plan.block_time = Plan.schedule.block_time()
