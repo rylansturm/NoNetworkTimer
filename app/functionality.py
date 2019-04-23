@@ -226,6 +226,13 @@ class Timer:
             Timer.color = 'red'
 
     @staticmethod
+    def reset():
+        Plan.new_shift = False
+        Andon.andons = 0
+        Andon.responded = 0
+        Timer.total_shift_cycles = 0
+
+    @staticmethod
     def shut_down(btn):
         if raspi:
             os.system('sudo shutdown now')
@@ -397,11 +404,7 @@ def function(app):
             Plan.schedule_adjusted = False
         if Plan.new_shift:
             Plan.write_schedule(app)
-            Plan.new_shift = False
-            Timer.andons = 0
-            Timer.responded = 0
-            Timer.total_shift_cycles = 0
-
+            Timer.reset()
         app.setLabel('PCT', PCT.planned_cycle_time)
         if PCT.adjusted:
             new_pct = app.getEntry('new_pct')
