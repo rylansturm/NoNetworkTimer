@@ -34,7 +34,6 @@ import datetime
 import configparser
 from app.schedule import Schedule  # see schedule.py for documentation
 import os
-import csv
 
 
 # overly simple boolean to determine if we are running on windows or a raspberry pi
@@ -461,9 +460,11 @@ def function(app):
             app.hideSubWindow('Catch Up?')
             Timer.hide_catch_up = False
         if Timer.catch_up_mode:
-            app.setStatusbar('Catch Up Mode', 0)
+            app.setStatusbar('Catch Up Mode - PCT %s * %s part(s)' % (PCT.catch_up_pct, Partsper.partsper), 0)
         else:
-            app.setStatusbar('', 0)
+            app.setStatusbar('PCT %s * %s part(s) = %s' %
+                             (PCT.planned_cycle_time, Partsper.partsper, Timer.countdown_format(PCT.sequence_time())),
+                             0)
         app.setStatusbar('Block Cycles: %s/%s' % (Timer.total_block_cycles(),
                                                   int(Plan.block_time // PCT.sequence_time())),
                          1)
