@@ -160,7 +160,7 @@ class Timer:
     @staticmethod
     def get_tCycle():
         if not Timer.catch_up_mode:
-            Timer.tCycle = PCT.sequence_time() - int((Plan.now() - Timer.mark).total_seconds())
+            Timer.tCycle = (PCT.catch_up_pct * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
         else:
             Timer.tCycle = PCT.sequence_time() - int((Plan.now() - Timer.mark).total_seconds())
         return Timer.tCycle
