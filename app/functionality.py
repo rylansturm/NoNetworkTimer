@@ -63,6 +63,10 @@ class PCT:
     adjust = False
 
     @staticmethod
+    def sequence_time():
+        return PCT.planned_cycle_time * Partsper.partsper
+
+    @staticmethod
     def set_PCT(btn):
         if btn == 'OK_PCT':
             PCT.adjust = True
@@ -79,7 +83,7 @@ class PCT:
 
     @staticmethod
     def cycles_until_caught_up():
-        ahead = (Timer.total_cycles() * PCT.planned_cycle_time * Partsper.partsper) - Plan.block_time_elapsed()
+        ahead = (Timer.total_block_cycles() * PCT.sequence_time()) - Plan.block_time_elapsed()
         diff = (PCT.catch_up_pct - PCT.planned_cycle_time) * Partsper.partsper
         try:
             return int(ahead / diff)
@@ -145,6 +149,7 @@ class Timer:
     late = 0
     early = 0
     on_target = 0
+    total_shift_cycles = 0
     expected_cycles = 0
     past_10 = ["00:00:00"]
     update_history = False
@@ -156,9 +161,9 @@ class Timer:
     @staticmethod
     def get_tCycle():
         if not Timer.catch_up_mode:
-            Timer.tCycle = (PCT.planned_cycle_time * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
+            Timer.tCycle = PCT.sequence_time() - int((Plan.now() - Timer.mark).total_seconds())
         else:
-            Timer.tCycle = (PCT.catch_up_pct * Partsper.partsper) - int((Plan.now() - Timer.mark).total_seconds())
+            Timer.tCycle = PCT.sequence_time() - int((Plan.now() - Timer.mark).total_seconds())
         return Timer.tCycle
 
     @staticmethod
@@ -183,7 +188,7 @@ class Timer:
     @staticmethod
     def get_ahead():
         expected = Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)
-        return int(Timer.total_cycles() - expected)
+        return int(Timer.total_block_cycles() - expected)
 
     @staticmethod
     def cycle():
@@ -200,14 +205,16 @@ class Timer:
                 Timer.past_10 = Timer.past_10[1:]
             Timer.mark = Plan.now()
             Timer.update_history = True
+            Timer.total_shift_cycles += 1
 
     @staticmethod
-    def total_cycles():
+    def total_block_cycles():
         return Timer.late + Timer.early + Timer.on_target
 
     @staticmethod
     def adjust_cycles(btn):
         exec('Timer.%s += 1' % btn)
+        Timer.total_shift_cycles += 1
 
     @staticmethod
     def screen_color():
@@ -252,7 +259,7 @@ class Plan:
         Timer.on_target = 0
         Timer.late = 0
         Timer.early = 0
-        Timer.expected_cycles = int(available_time // (PCT.planned_cycle_time * Partsper.partsper))
+        Timer.expected_cycles = int(available_time // PCT.sequence_time())
 
     @staticmethod
     def now():
@@ -340,7 +347,7 @@ def function(app):
         if Plan.block != Plan.schedule.get_block():
             if Plan.block != 0:
                 Timer.block_history['block%s' % Plan.block] = '%s/%s' % (
-                    Timer.total_cycles(), Timer.expected_cycles)
+                    Timer.total_block_cycles(), Timer.expected_cycles)
             Plan.block = Plan.schedule.get_block()
             Plan.block_time = Plan.schedule.block_time()
             Plan.new_block()
@@ -365,13 +372,13 @@ def function(app):
             ahead = Timer.get_ahead()
             current_expected = int(Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time))
             if ahead >= 0:
-                ahead_label = 'Ahead: %s (%s/%s)' % (ahead, Timer.total_cycles(), current_expected)
+                ahead_label = 'Ahead: %s (%s/%s)' % (ahead, Timer.total_block_cycles(), current_expected)
                 Timer.catch_up_mode = False
             else:
-                ahead_label = 'Behind: %s (%s/%s)' % (-ahead, Timer.total_cycles(), current_expected)
+                ahead_label = 'Behind: %s (%s/%s)' % (-ahead, Timer.total_block_cycles(), current_expected)
             app.setLabel('ahead', ahead_label)
         else:
-            app.setLabel('tCycle', '%s / %s' % (Timer.total_cycles(), Timer.expected_cycles))
+            app.setLabel('tCycle', '%s / %s' % (Timer.total_block_cycles(), Timer.expected_cycles))
             app.getLabelWidget('tCycle').config(font='arial 64')
             Timer.color = 'green'
             app.setLabel('ahead', 'BREAK')
@@ -394,6 +401,7 @@ def function(app):
             Plan.new_shift = False
             Timer.andons = 0
             Timer.responded = 0
+            Timer.total_shift_cycles = 0
 
         app.setLabel('PCT', PCT.planned_cycle_time)
         if PCT.adjusted:
@@ -409,7 +417,7 @@ def function(app):
                 PCT.planned_cycle_time = int(app.getEntry('new_pct'))
                 app.setEntry('new_pct', '')
                 available_time = (Plan.schedule.end[Plan.block-1] - Plan.schedule.start[Plan.block-1]).total_seconds()
-                Timer.expected_cycles = int(available_time // (PCT.planned_cycle_time * Partsper.partsper))
+                Timer.expected_cycles = int(available_time // PCT.sequence_time())
             PCT.adjust = False
             c = configparser.ConfigParser()
             c.read('setup.ini')
@@ -431,7 +439,7 @@ def function(app):
                 Partsper.partsper = int(app.getEntry('new_partsper'))
                 app.setEntry('new_partsper', '')
                 available_time = (Plan.schedule.end[Plan.block-1] - Plan.schedule.start[Plan.block-1]).total_seconds()
-                Timer.expected_cycles = int(available_time // (PCT.planned_cycle_time * Partsper.partsper))
+                Timer.expected_cycles = int(available_time // PCT.sequence_time())
             Partsper.adjust = False
             c = configparser.ConfigParser()
             c.read('setup.ini')
@@ -456,6 +464,12 @@ def function(app):
             app.setStatusbar('Catch Up Mode', 0)
         else:
             app.setStatusbar('', 0)
+        app.setStatusbar('Block Cycles: %s/%s' % (Timer.total_block_cycles(),
+                                                  int(Plan.block_time // PCT.sequence_time())),
+                         1)
+        app.setStatusbar('Shift Cycles: %s/%s' % (Timer.total_shift_cycles,
+                                                  int(Plan.schedule.available_time() // PCT.sequence_time())),
+                         2)
     app.registerEvent(counting)
     app.setPollTime(50)
     app.bindKey('<space>', Timer.cycle)

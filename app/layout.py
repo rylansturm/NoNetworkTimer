@@ -146,6 +146,6 @@ def layout(app):
         app.setScaleWidth('catch_up_scale', 45)
         app.addButton('OK', Timer.set_catch_up)
 
-    app.addStatusbar(fields=1)
+    app.addStatusbar(fields=3)
 
     return app
