@@ -7,8 +7,8 @@ class Timer:
     # prepare the gui
     @staticmethod
     def prepare(app):
-        app = layout(app)
-        app = function(app)
+        app = layout(app)  # passes the bare gui through the layout generator
+        app = function(app)  # gives the gui the functionality (functionally the same as importing functionality.*)
         return app
 
     def start(self):

@@ -10,7 +10,7 @@ Basic functionality of the timer is very simple:
 
 Additional functionality:
     **  Andons can be signaled and dismissed visually, and a cumulative count is kept
-    **  Stores end-of-shift data in csv file, displays last 3 shifts on 'History' tab
+    **  Stores end-of-shift data in csv file, displays last 3 shifts on 'History' tab  TODO: this isn't live yet
     **  Live metrics for:
         * Number of cycles ahead/behind
         * Total number of cycles that were late, on target, or early
@@ -36,17 +36,19 @@ from app.schedule import Schedule  # see schedule.py for documentation
 import os
 
 
-# overly simple boolean to determine if we are running on windows or a raspberry pi
-# functions that should not be ran while testing on Windows will check this variable first (ie shut_down, run_lights)
-
+"""
+overly simple boolean to determine if we are running on windows or a raspberry pi
+functions that should not be ran while testing on Windows will check this variable first (ie shut_down, run_lights)
+"""
 raspi = os.sys.platform == 'linux'
 if raspi:
     from app.lights import Light  # see lights.py for documentation
 
 
-# configparser object to read initialization file (setup.ini)
-# partsper and pct are stored here so the system will not forget after being restarted
-
+"""
+configparser object to read initialization file (setup.ini)
+partsper and pct are stored here so the system will not forget after being restarted
+"""
 c = configparser.ConfigParser()
 c.read('setup.ini')
 
@@ -56,17 +58,19 @@ class PCT:
     planned_cycle_time = int(c['Values']['pct'])
     catch_up_pct = planned_cycle_time
 
-    # new/adjusted/adjust are read by the gui to determine if/when to write changes
+    """ new/adjusted/adjust are read by the gui to determine if/when to write changes """
     new = ''
     adjusted = False
     adjust = False
 
     @staticmethod
     def sequence_time():
+        """ returns PCT * Partsper, or the expected sequence cycle time """
         return PCT.planned_cycle_time * Partsper.partsper
 
     @staticmethod
-    def set_PCT(btn):
+    def set_pct(btn):
+        """ handles buttons related to PCT adjustment """
         if btn == 'OK_PCT':
             PCT.adjust = True
         elif btn == 'Back_PCT':
@@ -77,11 +81,13 @@ class PCT:
             PCT.new = btn[0]
 
     @staticmethod
-    def catch_up(btn):
+    def catch_up():
+        """ launches the subWindow for catch_up functionality"""
         Timer.show_catch_up = True
 
     @staticmethod
     def cycles_until_caught_up():
+        """ returns the number of cycles it will take to catch up if you cycle at catch_up_pct """
         ahead = (Timer.total_block_cycles() * PCT.sequence_time()) - Plan.block_time_elapsed()
         diff = (PCT.catch_up_pct - PCT.planned_cycle_time) * Partsper.partsper
         try:
@@ -94,13 +100,14 @@ class Partsper:
     """partsper -> int; the number of parts this sequence produces in one cycle"""
     partsper = int(c['Values']['partsper'])
 
-    # new/adjusted/adjust are read by the gui to determine if/when to write changes
+    """ new/adjusted/adjust are read by the gui to determine if/when to write changes """
     new = ''
     adjusted = False
     adjust = False
 
     @staticmethod
     def set_partsper(btn):
+        """ handles button pushes relative to partsper adjustments """
         if btn == 'OK_partsper':
             Partsper.adjust = True
         elif btn == 'Back_partsper':
@@ -119,6 +126,7 @@ class Andon:
 
     @staticmethod
     def andon(btn):
+        """ handles the two andon buttons ['Andon', 'Respond'] """
         if btn == 'Andon':  # operator signals andon, changing LED to red
             Andon.andons += 1
         if btn == 'Respond':  # team leader responds to andon and resets andon LED
@@ -126,6 +134,7 @@ class Andon:
 
     @staticmethod
     def run_lights():
+        """ changes light color to red or green """
         if Andon.responded != Andon.andons:
             Light.set_all(1, 0, 0)
         else:
@@ -133,6 +142,7 @@ class Andon:
 
     @staticmethod
     def get_andons():
+        """ returns the label shown under the andon buttons """
         if Andon.responded != Andon.andons:
             return '%s + %s' % (Andon.responded, Andon.andons - Andon.responded)
         else:
@@ -140,25 +150,24 @@ class Andon:
 
 
 class Timer:
-    window = 3
-    tCycle = 0
-    mark = datetime.datetime.now()
-    color = 'light grey'
-    avg_cycle = 0
-    late = 0
-    early = 0
-    on_target = 0
-    total_shift_cycles = 0
-    expected_cycles = 0
-    past_10 = ["00:00:00"]
-    update_history = False
-    block_history = {}
-    show_catch_up = False
-    hide_catch_up = True
-    catch_up_mode = False
+    """ main class for most functionality """
+    window = 3                          # the acceptable range (+/-) for 'on target'
+    tCycle = 0                          # the main number displaying on the timer
+    mark = datetime.datetime.now()      # every cycle resets the mark. Used for calculating tCycle
+    color = 'light grey'                # current bg color of timer
+    late = 0                            # number of late cycles this block
+    early = 0                           # number of early cycles this block
+    on_target = 0                       # number of on_target cycles this block
+    total_shift_cycles = 0              # number of total cycles for the shift
+    expected_cycles = 0                 # number of expected cycles so far this block (constantly updating)
+    past_10 = ["00:00:00"]              # a list of the previous ten cycle times
+    update_history = False              # boolean to avoid constant updating on loop function
+    show_catch_up = False               # boolean for loop function to launch subWindow
+    hide_catch_up = True                # boolean for loop function to hide subWindow
+    catch_up_mode = False               # whether we are currently running in catch_up_mode
 
     @staticmethod
-    def get_tCycle():
+    def get_tcycle():
         if not Timer.catch_up_mode:
             Timer.tCycle = PCT.sequence_time() - int((Plan.now() - Timer.mark).total_seconds())
         else:
@@ -233,7 +242,7 @@ class Timer:
         Timer.total_shift_cycles = 0
 
     @staticmethod
-    def shut_down(btn):
+    def shut_down():
         if raspi:
             os.system('sudo shutdown now')
         else:
@@ -331,38 +340,61 @@ class Plan:
         Plan.block_time = Plan.schedule.block_time()
 
     @staticmethod
-    def update_default(btn):
-        c = configparser.ConfigParser()
-        c.read('schedules.ini')
+    def update_default():
+        ini = configparser.ConfigParser()
+        ini.read('schedules.ini')
         start = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.start])
         end = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.end])
-        c[Plan.schedule.shift]['start'] = start
-        c[Plan.schedule.shift]['end'] = end
+        ini[Plan.schedule.shift]['start'] = start
+        ini[Plan.schedule.shift]['end'] = end
         with open('schedules.ini', 'w') as configfile:
-            c.write(configfile)
+            ini.write(configfile)
 
 
 def function(app):
+    """ the hitherto functionless app is passed to this function to make it... function """
+
     def counting():
+        """ This function is constantly looping making changes
+            Other functions above manipulate the data, but only this function changes what is displayed """
+
         if raspi:
-            Andon.run_lights()
+            Andon.run_lights()  # only on raspi adjust the gpio pins
+
+        """ First check is to see if the shift has ended, and reset if so """
         if Plan.now() > Plan.schedule.schedule()[-1]:
             Plan.new_shift = True
             Plan.schedule = Schedule()
             Plan.shift = Plan.schedule.shift_select()
+
+        """ When the new shift happens """
+        if Plan.new_shift:
+            Plan.write_schedule(app)
+            Timer.reset()
+
+        """ Next check is to see if a new block has started ("block" being available time between two breaks) """
         if Plan.block != Plan.schedule.get_block():
-            if Plan.block != 0:
-                Timer.block_history['block%s' % Plan.block] = '%s/%s' % (
-                    Timer.total_block_cycles(), Timer.expected_cycles)
             Plan.block = Plan.schedule.get_block()
             Plan.block_time = Plan.schedule.block_time()
             Plan.new_block()
             Timer.mark = Plan.now()
-        Timer.tCycle = Timer.get_tCycle()
+
+        """ Timer.tCycle is the main number displaying on the timer """
+        Timer.tCycle = Timer.get_tcycle()
+
+        """ This was a quick way to ensure I only updated this list when a new cycle happened, not constantly """
         if Timer.update_history:
             app.changeOptionBox('past_10', Timer.past_10)
             app.setOptionBox('past_10', Timer.past_10[-1])
             Timer.update_history = False
+
+        """ 
+        The following is how the timer acts at different times through the shift.
+        These three cases are, respectively:
+            (1 - 'if'  ) Before available time has started at the beginning of the shift
+            (2 - 'elif') During the available time (the majority of functional usage time)
+            (3 - 'else') During breaks
+        """
         if Plan.now() < Plan.schedule.start[Plan.block-1]:
             label = 'Shift: %s\tDate: %s\n\n\tAvailable Time: %s\n\nPCT: %s\t\tParts per Cycle: %s' % (
                 Plan.schedule.shift, datetime.date.today(),
@@ -388,24 +420,27 @@ def function(app):
             app.getLabelWidget('tCycle').config(font='arial 64')
             Timer.color = 'green'
             app.setLabel('ahead', 'BREAK')
+
+        """ raspi is not particularly great at graphical processes, so only assign a new color if needed """
         if Timer.color != app.getLabelBg('tCycle'):
             app.setLabelBg('tCycle', Timer.color)
             print('color change: %s' % Timer.color)
-        try:
-            app.setLabel('consistency', Plan.time_format())
-        except ZeroDivisionError:
-            app.setLabel('consistency', Plan.time_format())
+
+        """ Constantly update the following labels """
+        app.setLabel('current_time', Plan.time_format())
         app.setLabel('late', 'Late: %s' % Timer.late)
         app.setLabel('early', 'Early: %s' % Timer.early)
         app.setLabel('on_target', 'On Time: %s' % Timer.on_target)
         app.setLabel('andons', Andon.get_andons())
+        app.setLabel('PCT', PCT.planned_cycle_time)
+        app.setLabel('partsper', Partsper.partsper)
+
+        """ Listen for button presses on the schedule tab """
         if Plan.schedule_adjusted:
             Plan.write_schedule(app)
             Plan.schedule_adjusted = False
-        if Plan.new_shift:
-            Plan.write_schedule(app)
-            Timer.reset()
-        app.setLabel('PCT', PCT.planned_cycle_time)
+
+        """ Listen for button presses related to PCT changes (Everything except the "OK" button) """
         if PCT.adjusted:
             new_pct = app.getEntry('new_pct')
             if PCT.new == '-':
@@ -414,6 +449,7 @@ def function(app):
                 new_pct += PCT.new
             app.setEntry('new_pct', new_pct)
             PCT.adjusted = False
+        """ make the change (the "OK" button for PCT) """
         if PCT.adjust:
             if app.getEntry('new_pct') != '':
                 PCT.planned_cycle_time = int(app.getEntry('new_pct'))
@@ -421,13 +457,13 @@ def function(app):
                 available_time = (Plan.schedule.end[Plan.block-1] - Plan.schedule.start[Plan.block-1]).total_seconds()
                 Timer.expected_cycles = int(available_time // PCT.sequence_time())
             PCT.adjust = False
-            c = configparser.ConfigParser()
-            c.read('setup.ini')
-            c['Values']['pct'] = str(PCT.planned_cycle_time)
+            ini = configparser.ConfigParser()
+            ini.read('setup.ini')
+            ini['Values']['pct'] = str(PCT.planned_cycle_time)
             with open('setup.ini', 'w') as configfile:
-                c.write(configfile)
+                ini.write(configfile)
 
-        app.setLabel('partsper', Partsper.partsper)
+        """ Listen for button presses related to Partsper changes (Everything except the "OK" button) """
         if Partsper.adjusted:
             new_partsper = app.getEntry('new_partsper')
             if Partsper.new == '-':
@@ -436,6 +472,7 @@ def function(app):
                 new_partsper += Partsper.new
             app.setEntry('new_partsper', new_partsper)
             Partsper.adjusted = False
+        """ make the change (the "OK" button for Partsper) """
         if Partsper.adjust:
             if app.getEntry('new_partsper') != '':
                 Partsper.partsper = int(app.getEntry('new_partsper'))
@@ -443,15 +480,16 @@ def function(app):
                 available_time = (Plan.schedule.end[Plan.block-1] - Plan.schedule.start[Plan.block-1]).total_seconds()
                 Timer.expected_cycles = int(available_time // PCT.sequence_time())
             Partsper.adjust = False
-            c = configparser.ConfigParser()
-            c.read('setup.ini')
-            c['Values']['partsper'] = str(Partsper.partsper)
+            ini = configparser.ConfigParser()
+            ini.read('setup.ini')
+            ini['Values']['partsper'] = str(Partsper.partsper)
             with open('setup.ini', 'w') as configfile:
-                c.write(configfile)
+                ini.write(configfile)
+
+        """ Everything related to the "Catch Up" functionality, where PCT is temporarily changed """
         PCT.catch_up_pct = app.getScale('catch_up_scale')
         app.setScaleRange('catch_up_scale', int(PCT.planned_cycle_time * .6), PCT.planned_cycle_time,
                           curr=PCT.catch_up_pct)
-        app.showScaleValue('catch_up_scale', show=True)
         app.setScaleIncrement('catch_up_scale', 1)
         app.setLabel('cycles_until_caught_up', '%s sec/part will catch\n  you up in %s cycles' %
                      (PCT.catch_up_pct, PCT.cycles_until_caught_up()))
@@ -474,8 +512,8 @@ def function(app):
         app.setStatusbar('Shift Cycles: %s/%s' % (Timer.total_shift_cycles,
                                                   int(Plan.schedule.available_time() // PCT.sequence_time())),
                          2)
-    app.registerEvent(counting)
-    app.setPollTime(50)
+    app.registerEvent(counting)  # make the "counting" function loop
+    app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function
     app.bindKey('<space>', Timer.cycle)
     app.bindKey('1', Timer.cycle)
     return app
