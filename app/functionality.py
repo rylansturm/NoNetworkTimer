@@ -34,6 +34,8 @@ import datetime
 import configparser
 from app.schedule import Schedule  # see schedule.py for documentation
 import os
+from config import Config
+import requests
 
 
 """
@@ -49,13 +51,13 @@ if raspi:
 configparser object to read initialization file (setup.ini)
 partsper and pct are stored here so the system will not forget after being restarted
 """
-c = configparser.ConfigParser()
-c.read('setup.ini')
+setup = configparser.ConfigParser()
+setup.read('setup.ini')
 
 
 class PCT:
     """pct -> int; number of seconds planned for cycling each part through flow"""
-    planned_cycle_time = int(c['Values']['pct'])
+    planned_cycle_time = int(setup['Values']['pct'])
     catch_up_pct = planned_cycle_time
 
     """ new/adjusted/adjust are read by the gui to determine if/when to write changes """
@@ -98,7 +100,7 @@ class PCT:
 
 class Partsper:
     """partsper -> int; the number of parts this sequence produces in one cycle"""
-    partsper = int(c['Values']['partsper'])
+    partsper = int(setup['Values']['partsper'])
 
     """ new/adjusted/adjust are read by the gui to determine if/when to write changes """
     new = ''
@@ -149,6 +151,24 @@ class Andon:
             return Andon.andons
 
 
+class DB:
+    """ handles functionality with data storage """
+    password = '24246'
+    password_attempt = ''
+    db_change = False
+
+    @staticmethod
+    def enter_password(btn):
+        DB.password_attempt += btn[0]
+        if len(DB.password_attempt) > 5:
+            DB.password_attempt = DB.password_attempt[-5:]
+
+    @staticmethod
+    def set_db(btn):
+        DB.db_change = True
+        DB.enter_password(btn)
+
+
 class Timer:
     """ main class for most functionality """
     window = 3                          # the acceptable range (+/-) for 'on target'
@@ -165,9 +185,12 @@ class Timer:
     show_catch_up = False               # boolean for loop function to launch subWindow
     hide_catch_up = True                # boolean for loop function to hide subWindow
     catch_up_mode = False               # whether we are currently running in catch_up_mode
+    shut_down_timer = 0                 # disables shut down button to prevent accidental presses
+    shut_down_count = 0                 # the number of times the button has been pressed (requires 3)
 
     @staticmethod
     def get_tcycle():
+        """ returns the current remaining cycle time """
         if not Timer.catch_up_mode:
             Timer.tCycle = PCT.sequence_time() - int((Plan.now() - Timer.mark).total_seconds())
         else:
@@ -176,6 +199,7 @@ class Timer:
 
     @staticmethod
     def set_catch_up(btn):
+        """ handles 'OK' button push in subWindow when setting PCT.catch_up_pct """
         if btn == 'OK':
             Timer.catch_up_mode = True
             Timer.hide_catch_up = True
@@ -195,12 +219,15 @@ class Timer:
 
     @staticmethod
     def get_ahead():
+        """ returns the number of cycles we are ahead this block (negative if behind) """
         expected = Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)
         return int(Timer.total_block_cycles() - expected)
 
     @staticmethod
     def cycle():
-        if (Plan.now() - Timer.mark).total_seconds() > 2:
+        """ this function is called by pressing the pedal """
+        cycle_time = int((Plan.now() - Timer.mark).total_seconds())
+        if cycle_time >= 2:
             window = Timer.window * Partsper.partsper
             if Timer.tCycle < -window:
                 Timer.late += 1
@@ -214,18 +241,35 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
+        # if Config.server:                         # TODO: make db installer
+        #     data = {'id_kpi': get_ARKPIID(),
+        #             'd': str(Var.mark),
+        #             'sequence': Var.seq,
+        #             'cycle_time': Var.last_cycle,
+        #             'parts_per': Var.partsper,
+        #             'delivered': Var.parts_delivered,
+        #             'code': Var.code
+        #             }
+        #     try:
+        #         r = requests.post('https://%s/api/cycles' % Config.server, json=data, verify=False)
+        #         print(r.json())
+        #     except ConnectionError:
+        #         print('Connection Failed')
 
     @staticmethod
     def total_block_cycles():
+        """ returns the number of cycles that have happened so far this block """
         return Timer.late + Timer.early + Timer.on_target
 
     @staticmethod
     def adjust_cycles(btn):
+        """ manually modifies the number of cycles that have been recorded """
         exec('Timer.%s += 1' % btn)
         Timer.total_shift_cycles += 1
 
     @staticmethod
     def screen_color():
+        """ changes the Timer.color variable to represent current state """
         window = Timer.window * Partsper.partsper
         if Timer.tCycle > window:
             Timer.color = 'light grey'
@@ -236,6 +280,7 @@ class Timer:
 
     @staticmethod
     def reset():
+        """ called with a new shift; resets certain variables """
         Plan.new_shift = False
         Andon.andons = 0
         Andon.responded = 0
@@ -243,13 +288,18 @@ class Timer:
 
     @staticmethod
     def shut_down():
-        if raspi:
-            os.system('sudo shutdown now')
-        else:
-            print('This would normally shut down a Raspberry Pi. Windows is immune!')
+        """ a button to shut down the raspi so the app never needs to be closed on the device """
+        Timer.shut_down_timer = 50
+        Timer.shut_down_count += 1
+        if Timer.shut_down_timer and Timer.shut_down_count == 3:
+            if raspi:
+                os.system('sudo shutdown now')
+            else:
+                print('This would normally shut down a Raspberry Pi. Windows is immune!')
 
 
 class Plan:
+    """ separate class for items related to the schedule """
     schedule = Schedule()
     shift = schedule.shift_select()
     new_shift = True
@@ -260,14 +310,17 @@ class Plan:
 
     @staticmethod
     def block_remaining_time():
+        """ returns the number of seconds remaining in the current block """
         return (Plan.schedule.end[Plan.block-1] - Plan.now()).total_seconds()
 
     @staticmethod
     def block_time_elapsed():
+        """ returns the number of seconds that have already passed in the current block """
         return (Plan.now() - Plan.schedule.start[Plan.block-1]).total_seconds()
 
     @staticmethod
     def new_block():
+        """ resets certain variables that need resetting between blocks """
         start = Plan.schedule.start[Plan.block - 1]
         end = Plan.schedule.end[Plan.block - 1]
         available_time = (end - start).total_seconds()
@@ -278,14 +331,17 @@ class Plan:
 
     @staticmethod
     def now():
+        """ shorthand for the current datetime object """
         return datetime.datetime.now()
 
     @staticmethod
     def schedule_format(time):
+        """ takes a datetime object and returns it in the specified format (ex. 01:23 PM)"""
         return datetime.datetime.strftime(time, '%I:%M %p')
 
     @staticmethod
     def time_format(time=None):
+        """ takes a datetime object (or uses current time) and returns specified format (ex. 01:23:45 PM) """
         if not time:
             return datetime.datetime.strftime(Plan.now(), '%I:%M:%S %p')
         else:
@@ -293,6 +349,7 @@ class Plan:
 
     @staticmethod
     def write_schedule(app):
+        """ puts the current schedule on the gui """
         Plan.total_time = 0
         for block in [1, 2, 3, 4]:
             start = Plan.schedule.start[block - 1]
@@ -306,6 +363,7 @@ class Plan:
 
     @staticmethod
     def adjust_schedule(btn):
+        """ handles the button pushes on the schedule tab """
         shifts = {'Grave':  (23, 7),
                   'Day':    (7, 15),
                   'Swing':  (15, 23)
@@ -341,6 +399,7 @@ class Plan:
 
     @staticmethod
     def update_default():
+        """ updates the default schedule for the current shift, stored in schedules.ini """
         ini = configparser.ConfigParser()
         ini.read('schedules.ini')
         start = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.start])
@@ -356,7 +415,8 @@ def function(app):
 
     def counting():
         """ This function is constantly looping making changes
-            Other functions above manipulate the data, but only this function changes what is displayed """
+            Other functions above manipulate the data, but only this function changes what is displayed
+        """
 
         if raspi:
             Andon.run_lights()  # only on raspi adjust the gpio pins
@@ -396,6 +456,7 @@ def function(app):
             (3 - 'else') During breaks
         """
         if Plan.now() < Plan.schedule.start[Plan.block-1]:
+            Timer.mark = datetime.datetime.now() - datetime.timedelta(seconds=2)
             label = 'Shift: %s\tDate: %s\n\n\tAvailable Time: %s\n\nPCT: %s\t\tParts per Cycle: %s' % (
                 Plan.schedule.shift, datetime.date.today(),
                 Plan.schedule.available_time(), PCT.planned_cycle_time, Partsper.partsper)
@@ -447,6 +508,8 @@ def function(app):
                 new_pct = new_pct[0:-1]
             else:
                 new_pct += PCT.new
+            if new_pct == '0':
+                new_pct = ''
             app.setEntry('new_pct', new_pct)
             PCT.adjusted = False
         """ make the change (the "OK" button for PCT) """
@@ -470,6 +533,8 @@ def function(app):
                 new_partsper = new_partsper[0:-1]
             else:
                 new_partsper += Partsper.new
+            if new_partsper == '0':
+                new_partsper = ''
             app.setEntry('new_partsper', new_partsper)
             Partsper.adjusted = False
         """ make the change (the "OK" button for Partsper) """
@@ -512,8 +577,39 @@ def function(app):
         app.setStatusbar('Shift Cycles: %s/%s' % (Timer.total_shift_cycles,
                                                   int(Plan.schedule.available_time() // PCT.sequence_time())),
                          2)
-    app.registerEvent(counting)  # make the "counting" function loop
-    app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function
+
+        """ handles the shut down button; helps prevent accidental shut down """
+        if Timer.shut_down_timer:
+            Timer.shut_down_timer -= 1
+            if Timer.shut_down_count == 1:
+                app.setButton('Shut Down', 'Are you sure? %s' % Timer.shut_down_timer)
+            elif Timer.shut_down_count == 2:
+                app.setButton('Shut Down', "Do it again, you won't... %s" % Timer.shut_down_timer)
+            if Timer.shut_down_timer == 0:
+                app.setButton('Shut Down', 'Shut Down')
+                Timer.shut_down_count = 0
+
+        """ checks for password entry and disables/enables entries on data tab """
+        if DB.password_attempt == DB.password:
+            app.enableOptionBox('db_type')
+            app.enableEntry('db_server')
+            app.enableButton('submit')
+        else:
+            app.disableOptionBox('db_type')
+            app.disableEntry('db_server')
+            app.disableButton('submit')
+
+        """ changes db settings when submitted """
+        if DB.db_change:  # TODO: finish setting db setup
+            server = app.getEntry('db_server')
+            db_setting = configparser.ConfigParser()
+            db_setting.read('db.ini')
+            db_setting['Settings']['server'] = server
+            with open('db.ini', 'w') as db_setup:
+                db_setting.write(db_setup)
+            DB.db_change = False
+    app.registerEvent(counting)  # make the "counting" function loop continuously
+    app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)
     app.bindKey('<space>', Timer.cycle)
     app.bindKey('1', Timer.cycle)
     return app

@@ -3,17 +3,19 @@ The app is passed to the 'layout' function which creates all labels, buttons, ta
 
 Current app layout is:
 
-Three tabs:
+Tabs:
     1.  Main
             the current cycle time, as well as live metrics and buttons for the andon system
     2.  Setup
             two keypads for adjusting the PCT and Partsper variables
     3.  Schedule
             shows the start/stop times for each block with buttons to adjust
+    4.  Data
+            password-protected entries for where data should be stored
 """
 
 
-from app.functionality import Timer, PCT, Plan, Partsper, Andon
+from app.functionality import Timer, PCT, Plan, Partsper, Andon, DB
 import os
 
 raspi = os.sys.platform == 'linux'      # boolean to prevent calling raspi specific functionality when testing
@@ -166,6 +168,30 @@ def layout(app):
             app.addButton('Shut Down', Timer.shut_down)
             app.setButtonFg('Shut Down', 'red')
             app.setButtonBg('Shut Down', 'black')
+
+        # Data Tab - Where db configurations are set
+        with app.tab('Data'):
+            app.setBg(bg)
+
+            with app.frame('db_entries', row=0, column=0):
+                app.setSticky('')
+                app.addOptionBox('db_type', ['local', 'server - api'])
+                app.addLabelEntry('db_server')
+                app.addButton('submit', DB.set_db)
+
+            with app.frame('password', row=0, column=1):
+                for button in range(1, 10):
+                    name = '%s_password' % button
+                    app.addButton(name, DB.enter_password, row=((button - 1) // 3) + 1, column=(button + 2) % 3)
+                    app.setButton(name, button)
+                    app.setButtonWidth(name, 1)
+                col = 0
+                for button in ['Back', '0', 'OK']:
+                    name = button + '_password'
+                    app.addButton(name, DB.enter_password, row=4, column=col)
+                    col += 1
+                    app.setButton(name, button)
+                    app.setButtonWidth(name, 1)
 
     # Sub Windows are windows that pop up when certain events happen
     with app.subWindow('Catch Up?'):
