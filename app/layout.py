@@ -178,6 +178,8 @@ def layout(app):
                 app.addOptionBox('db_type', ['local', 'server - api'])
                 app.addLabelEntry('db_server')
                 app.addButton('submit', DB.set_db)
+                app.setOptionBox('db_type', DB.get_db()[0])
+                app.setEntry('db_server', DB.get_db()[1] or '')
 
             with app.frame('password', row=0, column=1):
                 for button in range(1, 10):

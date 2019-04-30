@@ -158,6 +158,13 @@ class DB:
     db_change = False
 
     @staticmethod
+    def get_db():
+        if Config.server:
+            return 'server - api', Config.server
+        else:
+            return 'local', Config.server
+
+    @staticmethod
     def enter_password(btn):
         DB.password_attempt += btn[0]
         if len(DB.password_attempt) > 5:
@@ -592,22 +599,30 @@ def function(app):
         """ checks for password entry and disables/enables entries on data tab """
         if DB.password_attempt == DB.password:
             app.enableOptionBox('db_type')
-            app.enableEntry('db_server')
+            if app.getOptionBox('db_type') == 'server - api':
+                app.enableEntry('db_server')
+                app.enableLabel('db_server')
+            else:
+                app.disableEntry('db_server')
+                app.disableLabel('db_server')
             app.enableButton('submit')
         else:
             app.disableOptionBox('db_type')
             app.disableEntry('db_server')
+            app.disableLabel('db_server')
             app.disableButton('submit')
 
         """ changes db settings when submitted """
         if DB.db_change:  # TODO: finish setting db setup
-            server = app.getEntry('db_server')
+            server = app.getEntry('db_server') if app.getOptionBox('db_type') == 'server - api' else ''
             db_setting = configparser.ConfigParser()
             db_setting.read('db.ini')
             db_setting['Settings']['server'] = server
             with open('db.ini', 'w') as db_setup:
                 db_setting.write(db_setup)
             DB.db_change = False
+            app.setEntry('db_server', server)
+
     app.registerEvent(counting)  # make the "counting" function loop continuously
     app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)
     app.bindKey('<space>', Timer.cycle)
