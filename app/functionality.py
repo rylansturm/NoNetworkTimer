@@ -248,7 +248,7 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
-        # if Config.server:                         # TODO: make db installer
+        # if Config.server:                         # TODO: make cycle talk with api
         #     data = {'id_kpi': get_ARKPIID(),
         #             'd': str(Var.mark),
         #             'sequence': Var.seq,
@@ -419,6 +419,7 @@ class Plan:
 
 def function(app):
     """ the hitherto functionless app is passed to this function to make it... function """
+    """ function """
 
     def counting():
         """ This function is constantly looping making changes
@@ -613,7 +614,7 @@ def function(app):
             app.disableButton('submit')
 
         """ changes db settings when submitted """
-        if DB.db_change:  # TODO: finish setting db setup
+        if DB.db_change:
             server = app.getEntry('db_server') if app.getOptionBox('db_type') == 'server - api' else ''
             db_setting = configparser.ConfigParser()
             db_setting.read('db.ini')
