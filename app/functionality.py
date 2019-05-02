@@ -35,6 +35,7 @@ import configparser
 from app.schedule import Schedule  # see schedule.py for documentation
 import os
 from config import Config
+from sqlite3 import OperationalError
 import requests
 
 
@@ -156,13 +157,14 @@ class DB:
     password = '24246'
     password_attempt = ''
     db_change = False
+    local = Config.local_db
 
     @staticmethod
     def get_db():
-        if Config.server:
-            return 'server - api', Config.server
-        else:
-            return 'local', Config.server
+        return {'type': 'server - api' if Config.server else 'local',
+                'server': Config.server or '',
+                'sequence': Config.sequence or '',
+                'sequence_num': Config.sequence_num or '1'}
 
     @staticmethod
     def enter_password(btn):
@@ -210,6 +212,9 @@ class Timer:
         if btn == 'OK':
             Timer.catch_up_mode = True
             Timer.hide_catch_up = True
+        if btn == 'Cancel':
+            Timer.catch_up_mode = False
+            Timer.hide_catch_up = True
 
     @staticmethod
     def countdown_format(seconds: int):
@@ -238,16 +243,20 @@ class Timer:
             window = Timer.window * Partsper.partsper
             if Timer.tCycle < -window:
                 Timer.late += 1
+                code = 2
             elif Timer.tCycle > window:
                 Timer.early += 1
+                code = 0
             else:
                 Timer.on_target += 1
+                code = 1
             Timer.past_10.append(Timer.countdown_format(int((Plan.now() - Timer.mark).total_seconds())))
             if len(Timer.past_10) > 10:
                 Timer.past_10 = Timer.past_10[1:]
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
+            Timer.log_data(cycle_time, code)
         # if Config.server:                         # TODO: make cycle talk with api
         #     data = {'id_kpi': get_ARKPIID(),
         #             'd': str(Var.mark),
@@ -262,6 +271,21 @@ class Timer:
         #         print(r.json())
         #     except ConnectionError:
         #         print('Connection Failed')
+
+    @staticmethod
+    def log_data(cycle_time, code):
+        c = DB.local.cursor()
+        try:
+            data = cycle_time, code, str(Plan.now())
+            c.execute("""INSERT INTO cycle VALUES (?,?,?)""", data)
+            print('success, logged to local DB')
+            DB.local.commit()
+        except OperationalError:
+            DB.local.execute("""CREATE TABLE cycle
+                                (cycle_time int, code int, d text)""")
+            Timer.log_data(cycle_time, code)
+            print('failed, creating local DB...')
+            DB.local.commit()
 
     @staticmethod
     def total_block_cycles():
@@ -522,11 +546,14 @@ def function(app):
             PCT.adjusted = False
         """ make the change (the "OK" button for PCT) """
         if PCT.adjust:
-            if app.getEntry('new_pct') != '':
+            if app.getEntry('new_pct') != '' and 3 <= int(app.getEntry('new_pct')) <= Plan.block_time:
                 PCT.planned_cycle_time = int(app.getEntry('new_pct'))
                 app.setEntry('new_pct', '')
                 available_time = (Plan.schedule.end[Plan.block-1] - Plan.schedule.start[Plan.block-1]).total_seconds()
                 Timer.expected_cycles = int(available_time // PCT.sequence_time())
+            else:
+                app.errorBox('Wrong Value', 'Enter a value between 3 seconds and your current block available time.')
+                app.setEntry('new_pct', '')
             PCT.adjust = False
             ini = configparser.ConfigParser()
             ini.read('setup.ini')
@@ -547,11 +574,14 @@ def function(app):
             Partsper.adjusted = False
         """ make the change (the "OK" button for Partsper) """
         if Partsper.adjust:
-            if app.getEntry('new_partsper') != '':
+            if app.getEntry('new_partsper') != '' and int(app.getEntry('new_partsper')) <= 72:
                 Partsper.partsper = int(app.getEntry('new_partsper'))
                 app.setEntry('new_partsper', '')
                 available_time = (Plan.schedule.end[Plan.block-1] - Plan.schedule.start[Plan.block-1]).total_seconds()
                 Timer.expected_cycles = int(available_time // PCT.sequence_time())
+            else:
+                app.errorBox('Wrong Value', 'Enter a value between 1 and 72.')
+                app.setEntry('new_partsper', '')
             Partsper.adjust = False
             ini = configparser.ConfigParser()
             ini.read('setup.ini')
@@ -602,27 +632,43 @@ def function(app):
             app.enableOptionBox('db_type')
             if app.getOptionBox('db_type') == 'server - api':
                 app.enableEntry('db_server')
-                app.enableLabel('db_server')
+                app.enableEntry('db_sequence')
+                app.enableOptionBox('db_sequence_num')
+                for label in ['type', 'server', 'sequence', 'sequence_num']:
+                    app.enableLabel('db_' + label)
             else:
                 app.disableEntry('db_server')
-                app.disableLabel('db_server')
+                app.disableEntry('db_sequence')
+                app.disableOptionBox('db_sequence_num')
+                for label in ['server', 'sequence', 'sequence_num']:
+                    app.disableLabel('db_' + label)
             app.enableButton('submit')
         else:
             app.disableOptionBox('db_type')
             app.disableEntry('db_server')
-            app.disableLabel('db_server')
+            app.disableEntry('db_sequence')
+            app.disableOptionBox('db_sequence_num')
+            for label in ['type', 'server', 'sequence', 'sequence_num']:
+                app.disableLabel('db_' + label)
             app.disableButton('submit')
 
         """ changes db settings when submitted """
         if DB.db_change:
-            server = app.getEntry('db_server') if app.getOptionBox('db_type') == 'server - api' else ''
+            server_check = app.getOptionBox('db_type') == 'server - api'
+            server = app.getEntry('db_server') if server_check else ''
+            sequence = app.getEntry('db_sequence') if server_check else ''
+            sequence_num = app.getOptionBox('db_sequence_num') if server_check else ''
             db_setting = configparser.ConfigParser()
             db_setting.read('db.ini')
             db_setting['Settings']['server'] = server
+            db_setting['Settings']['sequence'] = sequence
+            db_setting['Settings']['sequence_num'] = sequence_num
             with open('db.ini', 'w') as db_setup:
                 db_setting.write(db_setup)
             DB.db_change = False
             app.setEntry('db_server', server)
+            app.setEntry('db_sequence', sequence)
+            app.setOptionBox('db_sequence_num', sequence_num)
 
     app.registerEvent(counting)  # make the "counting" function loop continuously
     app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)

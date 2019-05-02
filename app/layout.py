@@ -175,11 +175,15 @@ def layout(app):
 
             with app.frame('db_entries', row=0, column=0):
                 app.setSticky('')
-                app.addOptionBox('db_type', ['local', 'server - api'])
+                app.addLabelOptionBox('db_type', ['local', 'server - api'])
                 app.addLabelEntry('db_server')
+                app.addLabelEntry('db_sequence')
+                app.addLabelOptionBox('db_sequence_num', list(range(1, 10)))
                 app.addButton('submit', DB.set_db)
-                app.setOptionBox('db_type', DB.get_db()[0])
-                app.setEntry('db_server', DB.get_db()[1] or '')
+                app.setOptionBox('db_type', DB.get_db()['type'])
+                app.setEntry('db_server', DB.get_db()['server'] or '')
+                app.setEntry('db_sequence', DB.get_db()['sequence'] or '')
+                app.setOptionBox('db_sequence_num', DB.get_db()['sequence_num'] or '1')
 
             with app.frame('password', row=0, column=1):
                 for button in range(1, 10):
@@ -202,7 +206,7 @@ def layout(app):
         app.addLabel('cycles_until_caught_up')
         app.showScaleValue('catch_up_scale', show=True)
         app.setScaleWidth('catch_up_scale', 35)
-        app.addButton('OK', Timer.set_catch_up)
+        app.addButtons(['OK', 'Cancel'], Timer.set_catch_up)
 
     app.addStatusbar(fields=3)
 
