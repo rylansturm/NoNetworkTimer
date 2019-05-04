@@ -177,11 +177,13 @@ def layout(app):
                 app.setSticky('')
                 app.addLabelOptionBox('db_type', ['local', 'server - api'])
                 app.addLabelEntry('db_server')
+                app.addLabelEntry('db_area')
                 app.addLabelEntry('db_sequence')
                 app.addLabelOptionBox('db_sequence_num', list(range(1, 10)))
                 app.addButton('submit', DB.set_db)
                 app.setOptionBox('db_type', DB.get_db()['type'])
                 app.setEntry('db_server', DB.get_db()['server'] or '')
+                app.setEntry('db_area', DB.get_db()['area'] or '')
                 app.setEntry('db_sequence', DB.get_db()['sequence'] or '')
                 app.setOptionBox('db_sequence_num', DB.get_db()['sequence_num'] or '1')
 

@@ -48,6 +48,9 @@ class Schedule:
             available += (self.end[time] - self.start[time]).total_seconds()
         return int(available)
 
+    def kpi_date(self):
+        return datetime.datetime.date(self.start[0])
+
     @staticmethod
     def shift_select(now=None):
         if not now:

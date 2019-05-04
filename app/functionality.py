@@ -163,6 +163,7 @@ class DB:
     def get_db():
         return {'type': 'server - api' if Config.server else 'local',
                 'server': Config.server or '',
+                'area': Config.area or '',
                 'sequence': Config.sequence or '',
                 'sequence_num': Config.sequence_num or '1'}
 
@@ -180,22 +181,23 @@ class DB:
 
 class Timer:
     """ main class for most functionality """
-    window = 3                          # the acceptable range (+/-) for 'on target'
-    tCycle = 0                          # the main number displaying on the timer
-    mark = datetime.datetime.now()      # every cycle resets the mark. Used for calculating tCycle
-    color = 'light grey'                # current bg color of timer
-    late = 0                            # number of late cycles this block
-    early = 0                           # number of early cycles this block
-    on_target = 0                       # number of on_target cycles this block
-    total_shift_cycles = 0              # number of total cycles for the shift
-    expected_cycles = 0                 # number of expected cycles so far this block (constantly updating)
-    past_10 = ["00:00:00"]              # a list of the previous ten cycle times
-    update_history = False              # boolean to avoid constant updating on loop function
-    show_catch_up = False               # boolean for loop function to launch subWindow
-    hide_catch_up = True                # boolean for loop function to hide subWindow
-    catch_up_mode = False               # whether we are currently running in catch_up_mode
-    shut_down_timer = 0                 # disables shut down button to prevent accidental presses
-    shut_down_count = 0                 # the number of times the button has been pressed (requires 3)
+    window = 3                              # the acceptable range (+/-) for 'on target'
+    tCycle = 0                              # the main number displaying on the timer
+    mark = datetime.datetime.now()          # every cycle resets the mark. Used for calculating tCycle
+    color = 'light grey'                    # current bg color of timer
+    late = 0                                # number of late cycles this block
+    early = 0                               # number of early cycles this block
+    on_target = 0                           # number of on_target cycles this block
+    total_shift_cycles = 0                  # number of total cycles for the shift
+    expected_cycles = 0                     # number of expected cycles so far this block (constantly updating)
+    past_10 = ["00:00:00"]                  # a list of the previous ten cycle times
+    update_history = False                  # boolean to avoid constant updating on loop function
+    show_catch_up = False                   # boolean for loop function to launch subWindow
+    hide_catch_up = True                    # boolean for loop function to hide subWindow
+    catch_up_mode = False                   # whether we are currently running in catch_up_mode
+    shut_down_timer = 0                     # disables shut down button to prevent accidental presses
+    shut_down_count = 0                     # the number of times the button has been pressed (requires 3)
+    summary = "Shift:  0/0\nBlock: 0/0"     # displays between shifts/blocks so last block isn't lost
 
     @staticmethod
     def get_tcycle():
@@ -234,6 +236,14 @@ class Timer:
         """ returns the number of cycles we are ahead this block (negative if behind) """
         expected = Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)
         return int(Timer.total_block_cycles() - expected)
+
+    @staticmethod
+    def get_summary():
+        Timer.summary = 'Shift:  %s/%s\nBlock: %s/%s' % (Timer.total_shift_cycles,
+                                                         int(Plan.schedule.available_time() // PCT.sequence_time()),
+                                                         Timer.total_block_cycles(),
+                                                         int(Plan.block_time // PCT.sequence_time()))
+        return Timer.summary
 
     @staticmethod
     def cycle():
@@ -286,6 +296,20 @@ class Timer:
             Timer.log_data(cycle_time, code)
             print('failed, creating local DB...')
             DB.local.commit()
+        if Plan.kpi:
+            data = {'id_kpi': Plan.kpi['id'],
+                    'd': str(Timer.mark),
+                    'sequence': Config.sequence_num,
+                    'cycle_time': cycle_time,
+                    'parts_per': Partsper.partsper,
+                    'delivered': Timer.total_shift_cycles,
+                    'code': code
+                    }
+            try:
+                r = requests.post('https://{}/api/cycles'.format(Config.server), json=data)
+                print(r.json())
+            except ConnectionError:
+                print('Connection Failed')
 
     @staticmethod
     def total_block_cycles():
@@ -338,6 +362,7 @@ class Plan:
     block = 0
     block_time = 0
     total_time = 0
+    kpi = None
 
     @staticmethod
     def block_remaining_time():
@@ -427,6 +452,28 @@ class Plan:
                     Plan.schedule.end[block] -= delta
         Plan.schedule_adjusted = True
         Plan.block_time = Plan.schedule.block_time()
+        Timer.expected_cycles = int(Plan.block_time // PCT.sequence_time())
+
+    @staticmethod
+    def get_kpi(area=None, shift=None, date=None):  # TODO: when connection is made to api, get kpi id
+        if Config.server and raspi:
+            if not area:
+                area = Config.area
+            if not shift:
+                shift = Plan.shift
+            if not date:
+                date = Plan.schedule.kpi_date()
+            try:
+                r = requests.get('https://{}/api/kpi/{}/{}/{}'.format(Config.server, area, shift, date))
+                try:
+                    kpi = r.json()
+                except KeyError:
+                    kpi = None
+                return kpi
+            except ConnectionError:
+                print('Connection Failed')
+        else:
+            print('Either no db connection has been set or you are running on Windows.')
 
     @staticmethod
     def update_default():
@@ -456,11 +503,14 @@ def function(app):
         """ First check is to see if the shift has ended, and reset if so """
         if Plan.now() > Plan.schedule.schedule()[-1]:
             Plan.new_shift = True
+            Timer.summary = Timer.get_summary()
             Plan.schedule = Schedule()
             Plan.shift = Plan.schedule.shift_select()
 
         """ When the new shift happens """
         if Plan.new_shift:
+            if Config.server and raspi:
+                Plan.kpi = Plan.get_kpi()
             Plan.write_schedule(app)
             Timer.reset()
 
@@ -494,7 +544,8 @@ def function(app):
                 Plan.schedule.available_time(), PCT.planned_cycle_time, Partsper.partsper)
             app.setLabel('tCycle', label)
             app.getLabelWidget('tCycle').config(font='arial 20')
-            app.setLabel('ahead', 'Ahead: N/A')
+            app.setLabel('ahead', Timer.summary)
+            app.getLabelWidget('ahead').config(font='arial 20')
             Timer.color = 'green'
         elif Plan.now() < Plan.schedule.end[Plan.block-1]:
             app.setLabel('tCycle', Timer.countdown_format(Timer.tCycle))
@@ -511,8 +562,9 @@ def function(app):
         else:
             app.setLabel('tCycle', '%s / %s' % (Timer.total_block_cycles(), Timer.expected_cycles))
             app.getLabelWidget('tCycle').config(font='arial 64')
+            app.setLabel('ahead', Timer.get_summary())
+            app.getLabelWidget('ahead').config(font='arial 20')
             Timer.color = 'green'
-            app.setLabel('ahead', 'BREAK')
 
         """ raspi is not particularly great at graphical processes, so only assign a new color if needed """
         if Timer.color != app.getLabelBg('tCycle'):
@@ -632,23 +684,26 @@ def function(app):
             app.enableOptionBox('db_type')
             if app.getOptionBox('db_type') == 'server - api':
                 app.enableEntry('db_server')
+                app.enableEntry('db_area')
                 app.enableEntry('db_sequence')
                 app.enableOptionBox('db_sequence_num')
-                for label in ['type', 'server', 'sequence', 'sequence_num']:
+                for label in ['type', 'server', 'area', 'sequence', 'sequence_num']:
                     app.enableLabel('db_' + label)
             else:
                 app.disableEntry('db_server')
+                app.disableEntry('db_area')
                 app.disableEntry('db_sequence')
                 app.disableOptionBox('db_sequence_num')
-                for label in ['server', 'sequence', 'sequence_num']:
+                for label in ['server', 'area', 'sequence', 'sequence_num']:
                     app.disableLabel('db_' + label)
             app.enableButton('submit')
         else:
             app.disableOptionBox('db_type')
             app.disableEntry('db_server')
+            app.disableEntry('db_area')
             app.disableEntry('db_sequence')
             app.disableOptionBox('db_sequence_num')
-            for label in ['type', 'server', 'sequence', 'sequence_num']:
+            for label in ['type', 'server', 'area', 'sequence', 'sequence_num']:
                 app.disableLabel('db_' + label)
             app.disableButton('submit')
 
@@ -656,13 +711,19 @@ def function(app):
         if DB.db_change:
             server_check = app.getOptionBox('db_type') == 'server - api'
             server = app.getEntry('db_server') if server_check else ''
+            area = app.getEntry('db_area') if server_check else ''
             sequence = app.getEntry('db_sequence') if server_check else ''
             sequence_num = app.getOptionBox('db_sequence_num') if server_check else ''
             db_setting = configparser.ConfigParser()
             db_setting.read('db.ini')
             db_setting['Settings']['server'] = server
+            db_setting['Settings']['area'] = area
             db_setting['Settings']['sequence'] = sequence
             db_setting['Settings']['sequence_num'] = sequence_num
+            Config.server = server
+            Config.area = area
+            Config.sequence = sequence
+            Config.sequence_num = sequence_num
             with open('db.ini', 'w') as db_setup:
                 db_setting.write(db_setup)
             DB.db_change = False
