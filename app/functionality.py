@@ -198,6 +198,7 @@ class Timer:
     shut_down_timer = 0                     # disables shut down button to prevent accidental presses
     shut_down_count = 0                     # the number of times the button has been pressed (requires 3)
     summary = "Shift:  0/0\nBlock: 0/0"     # displays between shifts/blocks so last block isn't lost
+    restart = False                         # restarts timer when necessary
 
     @staticmethod
     def get_tcycle():
@@ -267,20 +268,6 @@ class Timer:
             Timer.update_history = True
             Timer.total_shift_cycles += 1
             Timer.log_data(cycle_time, code)
-        # if Config.server:                         # TODO: make cycle talk with api
-        #     data = {'id_kpi': get_ARKPIID(),
-        #             'd': str(Var.mark),
-        #             'sequence': Var.seq,
-        #             'cycle_time': Var.last_cycle,
-        #             'parts_per': Var.partsper,
-        #             'delivered': Var.parts_delivered,
-        #             'code': Var.code
-        #             }
-        #     try:
-        #         r = requests.post('https://%s/api/cycles' % Config.server, json=data, verify=False)
-        #         print(r.json())
-        #     except ConnectionError:
-        #         print('Connection Failed')
 
     @staticmethod
     def log_data(cycle_time, code):
@@ -288,13 +275,13 @@ class Timer:
         try:
             data = cycle_time, code, str(Plan.now())
             c.execute("""INSERT INTO cycle VALUES (?,?,?)""", data)
-            print('success, logged to local DB')
+            print('local database: updated')
             DB.local.commit()
         except OperationalError:
             DB.local.execute("""CREATE TABLE cycle
                                 (cycle_time int, code int, d text)""")
             Timer.log_data(cycle_time, code)
-            print('failed, creating local DB...')
+            print('No local database exists...\ncreating local DB...')
             DB.local.commit()
         if Plan.kpi:
             data = {'id_kpi': Plan.kpi['id'],
@@ -307,9 +294,12 @@ class Timer:
                     }
             try:
                 r = requests.post('https://{}/api/cycles'.format(Config.server), json=data)
+                print('server database: updated')
                 print(r.json())
             except ConnectionError:
-                print('Connection Failed')
+                print('server database: Connection Failed')
+        else:
+            print('server database: No connection has been made to a server database')
 
     @staticmethod
     def total_block_cycles():
@@ -342,15 +332,18 @@ class Timer:
         Timer.total_shift_cycles = 0
 
     @staticmethod
-    def shut_down():
-        """ a button to shut down the raspi so the app never needs to be closed on the device """
-        Timer.shut_down_timer = 50
-        Timer.shut_down_count += 1
-        if Timer.shut_down_timer and Timer.shut_down_count == 3:
-            if raspi:
-                os.system('sudo shutdown now')
-            else:
-                print('This would normally shut down a Raspberry Pi. Windows is immune!')
+    def shut_down(btn):
+        """ a button to shut down the raspi or reset the app so the app never needs to be closed completely """
+        if btn == 'Shut Down':
+            Timer.shut_down_timer = 50
+            Timer.shut_down_count += 1
+            if Timer.shut_down_timer and Timer.shut_down_count == 3:
+                if raspi:
+                    os.system('sudo shutdown now')
+                else:
+                    print('This would normally shut down a Raspberry Pi. Windows is immune!')
+        if btn == 'Restart':
+            Timer.restart = True
 
 
 class Plan:
@@ -474,6 +467,7 @@ class Plan:
                 print('Connection Failed')
         else:
             print('Either no db connection has been set or you are running on Windows.')
+            return None
 
     @staticmethod
     def update_default():
@@ -713,7 +707,7 @@ def function(app):
             server = app.getEntry('db_server') if server_check else ''
             area = app.getEntry('db_area') if server_check else ''
             sequence = app.getEntry('db_sequence') if server_check else ''
-            sequence_num = app.getOptionBox('db_sequence_num') if server_check else ''
+            sequence_num = app.getOptionBox('db_sequence_num') if server_check else '1'
             db_setting = configparser.ConfigParser()
             db_setting.read('db.ini')
             db_setting['Settings']['server'] = server
@@ -728,8 +722,19 @@ def function(app):
                 db_setting.write(db_setup)
             DB.db_change = False
             app.setEntry('db_server', server)
+            app.setEntry('db_area', area)
             app.setEntry('db_sequence', sequence)
             app.setOptionBox('db_sequence_num', sequence_num)
+
+        """ restarts timer when necessary changes need made (DB) """
+        if Timer.restart:
+            print('restarting app')
+            app.stop()
+            if raspi:
+                os.system('cd /home/pi/TaktTimer')
+                os.system('python3 main.py')
+            else:
+                os.system('python main.py')
 
     app.registerEvent(counting)  # make the "counting" function loop continuously
     app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)

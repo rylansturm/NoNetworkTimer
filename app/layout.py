@@ -165,9 +165,6 @@ def layout(app):
                     app.addLabel('block%sTime' % block, row=2, colspan=3)
             app.addLabel('availableTime', row=2, column=0, colspan=2)
             app.addButton('Update Default', Plan.update_default, row=3, column=0, colspan=2)
-            app.addButton('Shut Down', Timer.shut_down)
-            app.setButtonFg('Shut Down', 'red')
-            app.setButtonBg('Shut Down', 'black')
 
         # Data Tab - Where db configurations are set
         with app.tab('Data'):
@@ -186,6 +183,10 @@ def layout(app):
                 app.setEntry('db_area', DB.get_db()['area'] or '')
                 app.setEntry('db_sequence', DB.get_db()['sequence'] or '')
                 app.setOptionBox('db_sequence_num', DB.get_db()['sequence_num'] or '1')
+                for button in ['Shut Down', 'Restart']:
+                    app.addButton(button, Timer.shut_down)
+                    app.setButtonFg(button, 'red')
+                    app.setButtonBg(button, 'black')
 
             with app.frame('password', row=0, column=1):
                 for button in range(1, 10):
