@@ -10,4 +10,4 @@ class Config:
     area = db_config['Settings']['area'] or None
     sequence = db_config['Settings']['sequence'] or None
     sequence_num = db_config['Settings']['sequence_num'] or None
-    local_db = sqlite3.connect('local.db')
+    local_db = 'local.db'
