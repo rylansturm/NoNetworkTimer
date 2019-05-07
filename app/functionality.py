@@ -35,6 +35,7 @@ import configparser
 from app.schedule import Schedule  # see schedule.py for documentation
 import os
 from config import Config
+import sqlite3
 from sqlite3 import OperationalError
 import requests
 from threading import Thread
@@ -273,18 +274,19 @@ class Timer:
 
     @staticmethod
     def log_data(cycle_time, code):
-        c = DB.local.cursor()
+        conn = sqlite3.connect(DB.local)
+        c = conn.cursor()
         try:
             data = cycle_time, code, str(Plan.now())
             c.execute("""INSERT INTO cycle VALUES (?,?,?)""", data)
             print('local database: updated')
-            DB.local.commit()
+            conn.commit()
         except OperationalError:
-            DB.local.execute("""CREATE TABLE cycle
+            conn.execute("""CREATE TABLE cycle
                                 (cycle_time int, code int, d text)""")
             Timer.log_data(cycle_time, code)
             print('No local database exists...\ncreating local DB...')
-            DB.local.commit()
+            conn.commit()
         if Plan.kpi:
             data = {'id_kpi': Plan.kpi['id'],
                     'd': str(Timer.mark),
