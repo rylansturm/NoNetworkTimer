@@ -37,6 +37,7 @@ import os
 from config import Config
 from sqlite3 import OperationalError
 import requests
+from threading import Thread
 
 
 """
@@ -267,7 +268,8 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
-            Timer.log_data(cycle_time, code)
+            t = Thread(target=Timer.log_data, args=(cycle_time, code))
+            t.start()
 
     @staticmethod
     def log_data(cycle_time, code):
