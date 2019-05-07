@@ -293,7 +293,7 @@ class Timer:
                     'code': code
                     }
             try:
-                r = requests.post('https://{}/api/cycles'.format(Config.server), json=data)
+                r = requests.post('https://{}/api/cycles'.format(Config.server), json=data, verify=False)
                 print('server database: updated')
                 print(r.json())
             except ConnectionError:
@@ -457,7 +457,7 @@ class Plan:
             if not date:
                 date = Plan.schedule.kpi_date()
             try:
-                r = requests.get('https://{}/api/kpi/{}/{}/{}'.format(Config.server, area, shift, date))
+                r = requests.get('https://{}/api/kpi/{}/{}/{}'.format(Config.server, area, shift, date), verify=False)
                 try:
                     kpi = r.json()
                 except KeyError:
