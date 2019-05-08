@@ -1,5 +1,4 @@
 import configparser
-import sqlite3
 
 db_config = configparser.ConfigParser()
 db_config.read('db.ini')

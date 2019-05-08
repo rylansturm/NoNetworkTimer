@@ -10,13 +10,13 @@ Basic functionality of the timer is very simple:
 
 Additional functionality:
     **  Andons can be signaled and dismissed visually, and a cumulative count is kept
-    **  Stores end-of-shift data in csv file, displays last 3 shifts on 'History' tab  TODO: this isn't live yet
+    **  Stores end-of-shift data in sqlite3 file, displays last 3 shifts on 'History' tab  TODO: not made yet
     **  Live metrics for:
         * Number of cycles ahead/behind
         * Total number of cycles that were late, on target, or early
 
-Functions for the takt timer module are separated into 5 classes:
-
+Functions for the takt timer module are separated into 6 classes:   TODO: Clean up the functions/put in proper class
+                                                                    TODO: initialize classes with gui object
 PCT:
     Everything related to the planned cycle time
 Partsper:
@@ -25,6 +25,8 @@ Andon:
     Everything related to visually signaling andon, including the operation of the LED
 Plan:
     Variables and functions that deal with the scheduled start/stop times and how they operate
+DB:
+    Everything related to the db connection (both local and api)
 Timer:
     The main functionality and counting mechanisms of the timer
 """
@@ -42,7 +44,7 @@ from threading import Thread
 
 
 """
-overly simple boolean to determine if we are running on windows or a raspberry pi
+boolean to determine if we are running on windows or a raspberry pi
 functions that should not be ran while testing on Windows will check this variable first (ie shut_down, run_lights)
 """
 raspi = os.sys.platform == 'linux'
@@ -70,7 +72,7 @@ class PCT:
 
     @staticmethod
     def sequence_time():
-        """ returns PCT * Partsper, or the expected sequence cycle time """
+        """ returns PCT * Partsper, the expected sequence cycle time """
         return PCT.planned_cycle_time * Partsper.partsper
 
     @staticmethod
@@ -163,20 +165,24 @@ class DB:
 
     @staticmethod
     def get_db():
+        """ returns the database configuration """
         return {'type': 'server - api' if Config.server else 'local',
                 'server': Config.server or '',
                 'area': Config.area or '',
                 'sequence': Config.sequence or '',
-                'sequence_num': Config.sequence_num or '1'}
+                'sequence_num': Config.sequence_num or '1'
+                }
 
     @staticmethod
     def enter_password(btn):
+        """ stores the last 5 buttons pushed on the data tab as a string, checked against a password """
         DB.password_attempt += btn[0]
         if len(DB.password_attempt) > 5:
             DB.password_attempt = DB.password_attempt[-5:]
 
     @staticmethod
     def set_db(btn):
+        """ tells gui to change db configuration """
         DB.db_change = True
         DB.enter_password(btn)
 
@@ -242,6 +248,7 @@ class Timer:
 
     @staticmethod
     def get_summary():
+        """ creates a summary string of shift and block, allows last block to display before next shift starts """
         Timer.summary = 'Shift:  %s/%s\nBlock: %s/%s' % (Timer.total_shift_cycles,
                                                          int(Plan.schedule.available_time() // PCT.sequence_time()),
                                                          Timer.total_block_cycles(),
@@ -274,6 +281,7 @@ class Timer:
 
     @staticmethod
     def log_data(cycle_time, code):
+        """ Timer.cycle calls this function in a separate thread, logging data to both local and api databases """
         conn = sqlite3.connect(DB.local)
         c = conn.cursor()
         try:
@@ -452,7 +460,8 @@ class Plan:
         Timer.expected_cycles = int(Plan.block_time // PCT.sequence_time())
 
     @staticmethod
-    def get_kpi(area=None, shift=None, date=None):  # TODO: when connection is made to api, get kpi id
+    def get_kpi(area=None, shift=None, date=None):
+        """ connects to api and looks for a  """
         if Config.server and raspi:
             if not area:
                 area = Config.area
