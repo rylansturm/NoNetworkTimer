@@ -34,7 +34,7 @@ def layout(app):
 
     app.setFont(font)
     app.setTitle(title)
-    app.setSize('fullscreen' if raspi else (800, 480))
+    app.setSize('fullscreen' if raspi else size)
 
     """ 
     It's pretty easy to follow the layout of the app by following the indentation of the "with" statements 
