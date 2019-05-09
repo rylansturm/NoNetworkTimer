@@ -803,6 +803,7 @@ def function(app):
                 current_time = datetime.time(hour, minute)
                 t = Thread(target=Plan.write_new_datetime, args=(current_time,))
                 t.start()
+                Timer.reset()
                 if raspi:
                     print('updating time to %02d:%02d' % (hour, minute))
                 else:
