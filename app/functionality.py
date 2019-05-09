@@ -138,6 +138,8 @@ class Andon:
             Andon.andons += 1
         if btn == 'Respond':  # team leader responds to andon and resets andon LED
             Andon.responded = Andon.andons
+        if btn == 'Changeover':
+            Timer.color = 'blue'
 
     @staticmethod
     def run_lights():
@@ -368,6 +370,9 @@ class Plan:
     block_time = 0
     total_time = 0
     kpi = None
+    set_time = False
+    adjust_current_time = ('', '')
+    update_time = False
 
     @staticmethod
     def block_remaining_time():
@@ -394,6 +399,23 @@ class Plan:
     def now():
         """ shorthand for the current datetime object """
         return datetime.datetime.now()
+
+    @staticmethod
+    def set_current_time(btn):
+        if btn not in ['current_time', 'update current time']:
+            Plan.adjust_current_time = (btn[0], btn[-1])
+        elif btn == 'update current time':
+            Plan.update_time = True
+        Plan.set_time = True
+
+    @staticmethod
+    def write_new_datetime(current_time):
+        hour = current_time.hour
+        minute = current_time.minute
+        if raspi:
+            os.system(""" sudo date -s "%02d:%02d:00" """ % (hour, minute))
+        else:
+            print(""" sudo date -s "%02d:%02d:00" """ % (hour, minute))
 
     @staticmethod
     def schedule_format(time):
@@ -748,6 +770,45 @@ def function(app):
                 os.system('python3 main.py')
             else:
                 os.system('python main.py')
+
+        """ launches window to set the time (workaround for not having an RTC/internet) """
+        if Plan.set_time:
+            if Plan.adjust_current_time[0]:
+                label = 'current_hour' if Plan.adjust_current_time[0] == 'h' else 'current_minute'
+                hour = label == 'current_hour'
+                time = int(app.getLabel(label))
+                time += (1 if Plan.adjust_current_time[1] == 'p' else -1)
+                if hour:
+                    time -= 12 if time > 12 else 0
+                    time += 12 if time < 1 else 0
+                else:
+                    time -= 60 if time > 59 else 0
+                    time += 60 if time < 0 else 0
+                app.setLabel(label, time)
+                Plan.adjust_current_time = ('', '')
+            else:
+                if not Plan.update_time:
+                    hour = Plan.now().hour if Plan.now().hour <= 12 else Plan.now().hour - 12
+                    hour += (12 if hour == 0 else 0)
+                    app.setLabel('current_hour', hour)
+                    app.setLabel('current_minute', Plan.now().minute)
+                    app.showSubWindow('Time Setter')
+            Plan.set_time = False
+            if Plan.update_time:
+                hour = int(app.getLabel('current_hour'))
+                minute = int(app.getLabel('current_minute'))
+                am_pm = app.getRadioButton('am_pm')
+                hour += 12 if am_pm == 'PM' else 0
+                hour = 0 if hour == 24 else hour
+                current_time = datetime.time(hour, minute)
+                t = Thread(target=Plan.write_new_datetime, args=(current_time,))
+                t.start()
+                if raspi:
+                    print('updating time to %02d:%02d' % (hour, minute))
+                else:
+                    print('new time would be %02d:%02d' % (hour, minute))
+                app.hideSubWindow('Time Setter')
+                Plan.update_time = False
 
     app.registerEvent(counting)  # make the "counting" function loop continuously
     app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)

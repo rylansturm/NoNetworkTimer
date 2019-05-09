@@ -70,6 +70,7 @@ def layout(app):
                         app.setLabelRelief(label, 'ridge')
                         column += 1
                     app.setLabelSubmitFunction('ahead', PCT.catch_up)
+                    app.setLabelSubmitFunction('current_time', Plan.set_current_time)
 
                 column = 0
                 for label in ['early', 'late', 'on_target']:
@@ -92,6 +93,7 @@ def layout(app):
                 app.setButtonWidth('Respond', 1)
                 app.addLabel('andons', '')
                 app.getLabelWidget('andons').config(font=font_bold)
+                # app.addButton('Changeover', Andon.andon)
 
         # Setup Tab - Where you set PCT and Parts per Cycle
         with app.tab('Setup'):
@@ -211,6 +213,21 @@ def layout(app):
         app.showScaleValue('catch_up_scale', show=True)
         app.setScaleWidth('catch_up_scale', 35)
         app.addButtons(['OK', 'Cancel'], Timer.set_catch_up)
+
+    with app.subWindow('Time Setter'):
+        with app.labelFrame('Set Hour', row=0, column=0):
+            app.setSticky('news')
+            app.addButton('hour_up', Plan.set_current_time)
+            app.addLabel('current_hour')
+            app.addButton('hour_down', Plan.set_current_time)
+        with app.labelFrame('Set Minute', row=0, column=1):
+            app.addButton('minute_up', Plan.set_current_time)
+            app.addLabel('current_minute')
+            app.addButton('minute_down', Plan.set_current_time)
+        with app.frame('am_pm', row=1, column=0, colspan=2):
+            app.addRadioButton('am_pm', 'AM')
+            app.addRadioButton('am_pm', 'PM')
+            app.addButton('update current time', Plan.set_current_time)
 
     app.addStatusbar(fields=3)
 
