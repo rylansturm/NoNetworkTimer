@@ -798,7 +798,7 @@ def function(app):
                 hour = int(app.getLabel('current_hour'))
                 minute = int(app.getLabel('current_minute'))
                 am_pm = app.getRadioButton('am_pm')
-                hour += 12 if am_pm == 'PM' else 0
+                hour += 12 if am_pm == 'PM' and hour != 12 else 0
                 hour = 0 if (hour == 12 and am_pm == 'AM') else hour
                 current_time = datetime.time(hour, minute)
                 app.stop()
