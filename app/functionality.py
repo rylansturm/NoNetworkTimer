@@ -415,11 +415,11 @@ class Plan:
         if raspi:
             os.system(""" sudo date -s "%02d:%02d:00" """ % (hour, minute))
         else:
-            print(""" sudo date -s "%02d:%02d:00" """ % (hour, minute))
+            print(""" sudo date -s "%02d:%02d:00" \n""" % (hour, minute))
 
     @staticmethod
     def schedule_format(time):
-        """ takes a datetime object and returns it in the specified format (ex. 01:23 PM)"""
+        """ takes a datetime object and returns str in the specified format (ex. 01:23 PM)"""
         return datetime.datetime.strftime(time, '%I:%M %p')
 
     @staticmethod
@@ -801,15 +801,16 @@ def function(app):
                 hour += 12 if am_pm == 'PM' else 0
                 hour = 0 if (hour == 12 and am_pm == 'AM') else hour
                 current_time = datetime.time(hour, minute)
+                app.stop()
                 t = Thread(target=Plan.write_new_datetime, args=(current_time,))
                 t.start()
-                Timer.shut_down('Restart')
                 if raspi:
                     print('updating time to %02d:%02d' % (hour, minute))
+                    os.system('cd /home/pi/TaktTimer')
+                    os.system('python3 main.py')
                 else:
-                    print('new time would be %02d:%02d' % (hour, minute))
-                app.hideSubWindow('Time Setter')
-                Plan.update_time = False
+                    print('new time would be %02d:%02d\n' % (hour, minute))
+                    os.system('python main.py')
 
     app.registerEvent(counting)  # make the "counting" function loop continuously
     app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)
