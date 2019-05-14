@@ -25,16 +25,17 @@ Andon:
     Everything related to visually signaling andon, including the operation of the LED
 Plan:
     Variables and functions that deal with the scheduled start/stop times and how they operate
-DB:
-    Everything related to the db connection (both local and api)
 Timer:
     The main functionality and counting mechanisms of the timer
+DB:   # MOVED TO SEPARATE FILE
+    Everything related to the db connection (both local and api)
 """
 
 # imports
 import datetime
 import configparser
 from app.schedule import Schedule  # see schedule.py for documentation
+from app.db import DB
 import os
 from config import Config
 import sqlite3
@@ -136,8 +137,12 @@ class Andon:
         """ handles the two andon buttons ['Andon', 'Respond'] """
         if btn == 'Andon':  # operator signals andon, changing LED to red
             Andon.andons += 1
+            t = Thread(target=DB.andon, args=(Plan.kpi,))
+            t.start()
         if btn == 'Respond':  # team leader responds to andon and resets andon LED
             Andon.responded = Andon.andons
+            t = Thread(target=DB.andon_response, args=(Plan.kpi,))
+            t.start()
         if btn == 'Changeover':
             Timer.color = 'blue'
 
@@ -156,37 +161,6 @@ class Andon:
             return '%s + %s' % (Andon.responded, Andon.andons - Andon.responded)
         else:
             return Andon.andons
-
-
-class DB:
-    """ handles functionality with data storage """
-    password = '24246'
-    password_attempt = ''
-    db_change = False
-    local = Config.local_db
-
-    @staticmethod
-    def get_db():
-        """ returns the database configuration """
-        return {'type': 'server - api' if Config.server else 'local',
-                'server': Config.server or '',
-                'area': Config.area or '',
-                'sequence': Config.sequence or '',
-                'sequence_num': Config.sequence_num or '1'
-                }
-
-    @staticmethod
-    def enter_password(btn):
-        """ stores the last 5 buttons pushed on the data tab as a string, checked against a password """
-        DB.password_attempt += btn[0]
-        if len(DB.password_attempt) > 5:
-            DB.password_attempt = DB.password_attempt[-5:]
-
-    @staticmethod
-    def set_db(btn):
-        """ tells gui to change db configuration """
-        DB.db_change = True
-        DB.enter_password(btn)
 
 
 class Timer:
@@ -278,42 +252,9 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
-            t = Thread(target=Timer.log_data, args=(cycle_time, code))
+            t = Thread(target=DB.cycle, args=(str(Timer.mark), cycle_time, Config.sequence_num, Partsper.partsper,
+                                              Timer.total_shift_cycles, code,  Plan.kpi))
             t.start()
-
-    @staticmethod
-    def log_data(cycle_time, code):
-        """ Timer.cycle calls this function in a separate thread, logging data to both local and api databases """
-        conn = sqlite3.connect(DB.local)
-        c = conn.cursor()
-        try:
-            data = cycle_time, code, str(Plan.now())
-            c.execute("""INSERT INTO cycle VALUES (?,?,?)""", data)
-            print('local database: updated')
-            conn.commit()
-        except OperationalError:
-            conn.execute("""CREATE TABLE cycle
-                                (cycle_time int, code int, d text)""")
-            Timer.log_data(cycle_time, code)
-            print('No local database exists...\ncreating local DB...')
-            conn.commit()
-        if Plan.kpi:
-            data = {'id_kpi': Plan.kpi['id'],
-                    'd': str(Timer.mark),
-                    'sequence': Config.sequence_num,
-                    'cycle_time': cycle_time,
-                    'parts_per': Partsper.partsper,
-                    'delivered': Timer.total_shift_cycles,
-                    'code': code
-                    }
-            try:
-                r = requests.post('https://{}/api/cycles'.format(Config.server), json=data, verify=False)
-                print('server database: updated')
-                print(r.json())
-            except ConnectionError:
-                print('server database: Connection Failed')
-        else:
-            print('server database: No connection has been made to a server database')
 
     @staticmethod
     def total_block_cycles():
@@ -483,7 +424,7 @@ class Plan:
 
     @staticmethod
     def get_kpi(area=None, shift=None, date=None):
-        """ connects to api and looks for a  """
+        """ connects to api and looks for a kpi object for current shift """
         if Config.server and raspi:
             if not area:
                 area = Config.area
