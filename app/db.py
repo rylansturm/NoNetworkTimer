@@ -78,7 +78,7 @@ class DB:
                     'responded': 0,
                     }
             try:
-                r = requests.post('https://{}/api/andon'.format(Config.server), json=data)
+                r = requests.post('https://{}/api/andon'.format(Config.server), json=data, verify=False)
                 print(r.json())
                 print('server database: andon logged')
             except ConnectionError:
@@ -94,7 +94,7 @@ class DB:
                     'response_d': str(datetime.datetime.now()),
                     }
             try:
-                r = requests.post('https://{}/api/andon/respond'.format(Config.server), json=data)
+                r = requests.post('https://{}/api/andon/respond'.format(Config.server), json=data, verify=False)
                 print(r.json())
                 print('server database: andon response logged')
             except ConnectionError:
