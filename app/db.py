@@ -74,7 +74,7 @@ class DB:
         if kpi:
             data = {'id_kpi': kpi['id'],
                     'd': str(datetime.datetime.now()),
-                    'sequence': Config.sequence,
+                    'sequence': Config.sequence_num,
                     'responded': 0,
                     }
             try:
@@ -90,11 +90,11 @@ class DB:
     def andon_response(kpi):
         if kpi:
             data = {'id_kpi': kpi['id'],
-                    'sequence': Config.sequence,
+                    'sequence': Config.sequence_num,
                     'response_d': str(datetime.datetime.now()),
                     }
             try:
-                r = requests.post('https://andonresponse.com/api/andon/respond', json=data)
+                r = requests.post('https://{}/api/andon/respond'.format(Config.server), json=data)
                 print(r.json())
                 print('server database: andon response logged')
             except ConnectionError:
