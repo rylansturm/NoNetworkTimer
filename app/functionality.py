@@ -462,7 +462,7 @@ class Plan:
         Plan.kpi['plan_cycle_time'] = PCT.planned_cycle_time
         if Plan.kpi:
             try:
-                r = requests.post('https://localhost/api/kpi', json=Plan.kpi, verify=False)
+                r = requests.post('https://{}/api/kpi'.format(Config.server), json=Plan.kpi, verify=False)
                 print(r.json())
             except ConnectionError:
                 print('Connection Failed')
