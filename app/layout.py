@@ -108,11 +108,12 @@ def layout(app):
 
                 with app.frame('PCT_entry', row=1, column=0):
                     app.setSticky('news')
+                    app.addButtons(['Get from server', 'Log to server'], PCT.set_pct, colspan=3)
                     app.addEntry('new_pct', colspan=3)
                     app.setEntryAlign('new_pct', 'center')
                     for button in range(1, 10):
                         name = '%s_PCT' % button
-                        app.addButton(name, PCT.set_pct, row=((button - 1) // 3) + 1, column=(button + 2) % 3)
+                        app.addButton(name, PCT.set_pct, row=((button - 1) // 3) + 2, column=(button + 2) % 3)
                         app.setButton(name, button)
                         app.setButtonWidth(name, 1)
                     col = 0

@@ -84,6 +84,12 @@ class PCT:
         elif btn == 'Back_PCT':
             PCT.adjusted = True
             PCT.new = '-'
+        elif btn == 'Get from server':
+            Plan.kpi = Plan.get_kpi()
+            if Plan.kpi:
+                PCT.planned_cycle_time = Plan.kpi['plan_cycle_time']
+        elif btn == 'Log to server':
+            Plan.adjust_kpi()
         else:
             PCT.adjusted = True
             PCT.new = btn[0]
@@ -252,6 +258,8 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
+            if not Plan.kpi:
+                Plan.kpi = Plan.get_kpi()
             t = Thread(target=DB.cycle, args=(str(Timer.mark), cycle_time, Config.sequence_num, Partsper.partsper,
                                               Timer.total_shift_cycles, code,  Plan.kpi))
             t.start()
@@ -435,15 +443,29 @@ class Plan:
             try:
                 r = requests.get('https://{}/api/kpi/{}/{}/{}'.format(Config.server, area, shift, date), verify=False)
                 try:
-                    kpi = r.json()
-                except KeyError:
+                    if r.status_code == 200:
+                        kpi = r.json()
+                    else:
+                        kpi = None
+                except:
                     kpi = None
-                return kpi
             except ConnectionError:
+                kpi = None
                 print('Connection Failed')
+            return kpi
         else:
             print('Either no db connection has been set or you are running on Windows.')
             return None
+
+    @staticmethod
+    def adjust_kpi():
+        Plan.kpi['plan_cycle_time'] = PCT.planned_cycle_time
+        if Plan.kpi:
+            try:
+                r = requests.post('https://localhost/api/kpi', json=Plan.kpi, verify=False)
+                print(r.json())
+            except ConnectionError:
+                print('Connection Failed')
 
     @staticmethod
     def update_default():
