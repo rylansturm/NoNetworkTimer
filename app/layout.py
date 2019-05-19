@@ -119,7 +119,7 @@ def layout(app):
                     col = 0
                     for button in ['Back', '0', 'OK']:
                         name = button + '_PCT'
-                        app.addButton(name, PCT.set_pct, row=4, column=col)
+                        app.addButton(name, PCT.set_pct, row=5, column=col)
                         col += 1
                         app.setButton(name, button)
                         app.setButtonWidth(name, 1)
