@@ -27,7 +27,7 @@ Plan:
     Variables and functions that deal with the scheduled start/stop times and how they operate
 Timer:
     The main functionality and counting mechanisms of the timer
-DB:   # MOVED TO SEPARATE FILE
+DB:
     Everything related to the db connection (both local and api)
 """
 
@@ -35,7 +35,6 @@ DB:   # MOVED TO SEPARATE FILE
 import datetime
 import configparser
 from app.schedule import Schedule  # see schedule.py for documentation
-from app.db import DB
 import os
 from config import Config
 import sqlite3
@@ -89,7 +88,7 @@ class PCT:
             if Plan.kpi:
                 PCT.planned_cycle_time = Plan.kpi['plan_cycle_time']
         elif btn == 'Log to server':
-            Plan.adjust_kpi()
+            DB.adjust_kpi()
         else:
             PCT.adjusted = True
             PCT.new = btn[0]
@@ -458,26 +457,150 @@ class Plan:
             return None
 
     @staticmethod
-    def adjust_kpi():
+    def update_schedule(btn):
+        """ updates the default schedule for the current shift, stored in schedules.ini """
+        if btn == 'Update Default':
+            ini = configparser.ConfigParser()
+            ini.read('schedules.ini')
+            start = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.start])
+            end = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.end])
+            ini[Plan.schedule.shift]['start'] = start
+            ini[Plan.schedule.shift]['end'] = end
+            with open('schedules.ini', 'w') as configfile:
+                ini.write(configfile)
+        data = {}
+        x = 0
+        for start, end in [['start' + str(i), 'end' + str(i)] for i in range(1, 5)]:
+            data[start] = Plan.schedule.start[x]
+            data[end] = Plan.schedule.end[x]
+            x += 1
+        data['name'] = 'Regular' if btn == 'Update Default' else 'Custom'
+        data['schedule_area'] = Config.area
+        data['schedule_shift'] = Plan.shift
+        DB.update_schedule(data)
+
+
+class DB:
+    """ handles functionality with data storage """
+    password = '24246'
+    password_attempt = ''
+    db_change = False
+    local = Config.local_db
+
+    @staticmethod
+    def get_db():
+        """ returns the database configuration """
+        return {'type': 'server - api' if Config.server else 'local',
+                'server': Config.server or '',
+                'area': Config.area or '',
+                'sequence': Config.sequence or '',
+                'sequence_num': Config.sequence_num or '1'
+                }
+
+    @staticmethod
+    def enter_password(btn):
+        """ stores the last 5 buttons pushed on the data tab as a string, checked against a password """
+        DB.password_attempt += btn[0]
+        if len(DB.password_attempt) > 5:
+            DB.password_attempt = DB.password_attempt[-5:]
+
+    @staticmethod
+    def set_db(btn):
+        """ tells gui to change db configuration """
+        DB.db_change = True
+        DB.enter_password(btn)
+
+    @staticmethod
+    def cycle(mark, cycle_time, sequence, partsper, delivered, code, kpi):
+        """ Timer.cycle calls this function in a separate thread, logging data to both local and api databases """
+        conn = sqlite3.connect(DB.local)
+        c = conn.cursor()
+        try:
+            data = cycle_time, code, str(datetime.datetime.now())
+            c.execute("""INSERT INTO cycle VALUES (?,?,?)""", data)
+            print('local database: updated')
+            conn.commit()
+        except OperationalError:
+            conn.execute("""CREATE TABLE cycle
+                                (cycle_time int, code int, d text)""")
+            DB.cycle(mark, cycle_time, sequence, partsper, delivered, code, kpi)
+            print('No local database exists...\ncreating local DB...')
+            conn.commit()
+        if kpi:
+            data = {'id_kpi': kpi['id'],
+                    'd': mark,
+                    'sequence': sequence,
+                    'cycle_time': cycle_time,
+                    'parts_per': partsper,
+                    'delivered': delivered,
+                    'code': code
+                    }
+            try:
+                r = requests.post('https://{}/api/cycles'.format(Config.server), json=data, verify=False)
+                print('server database: updated')
+                print(r.json())
+            except ConnectionError:
+                print('server database: Connection Failed')
+        else:
+            print('server database: No connection has been made to a server database')
+
+    @staticmethod
+    def andon(kpi):
+        if kpi:
+            data = {'id_kpi': kpi['id'],
+                    'd': str(datetime.datetime.now()),
+                    'sequence': Config.sequence_num,
+                    'responded': 0,
+                    }
+            try:
+                r = requests.post('https://{}/api/andon'.format(Config.server), json=data, verify=False)
+                print(r.json())
+                print('server database: andon logged')
+            except ConnectionError:
+                print('server database: Connection Failed (for Andon)')
+        else:
+            print('server database: No connection has been made to a server database')
+
+    @staticmethod
+    def andon_response(kpi):
+        if kpi:
+            data = {'id_kpi': kpi['id'],
+                    'sequence': Config.sequence_num,
+                    'response_d': str(datetime.datetime.now()),
+                    }
+            try:
+                r = requests.post('https://{}/api/andon/respond'.format(Config.server), json=data, verify=False)
+                print(r.json())
+                print('server database: andon response logged')
+            except ConnectionError:
+                print('server database: connection failed (for andon response)')
+        else:
+            print('server database: No connection has been made to a server database')
+
+    @staticmethod
+    def update_schedule(data):
+        try:
+            s = requests.post('https://{}/api/schedules/config'.format(Config.server), json=data, verify=False)
+            DB.adjust_kpi(schedule=s.json()['name'])
+            print(s.json())
+        except ConnectionError:
+            print('server database: connection failed (for update schedule)')
+        except KeyError:
+            print('server database: That schedule name doesn\'t exist')
+
+    @staticmethod
+    def adjust_kpi(schedule=None):
         Plan.kpi['plan_cycle_time'] = PCT.planned_cycle_time
+        if not schedule:
+            Plan.kpi['schedule'] = 'Regular'
+        else:
+            Plan.kpi['schedule'] = schedule
         if Plan.kpi:
             try:
                 r = requests.post('https://{}/api/kpi'.format(Config.server), json=Plan.kpi, verify=False)
                 print(r.json())
             except ConnectionError:
                 print('Connection Failed')
-
-    @staticmethod
-    def update_default():
-        """ updates the default schedule for the current shift, stored in schedules.ini """
-        ini = configparser.ConfigParser()
-        ini.read('schedules.ini')
-        start = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.start])
-        end = ', '.join([datetime.datetime.strftime(time, '%H%M') for time in Plan.schedule.end])
-        ini[Plan.schedule.shift]['start'] = start
-        ini[Plan.schedule.shift]['end'] = end
-        with open('schedules.ini', 'w') as configfile:
-            ini.write(configfile)
 
 
 def function(app):

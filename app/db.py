@@ -102,4 +102,23 @@ class DB:
         else:
             print('server database: No connection has been made to a server database')
 
+    @staticmethod
+    def update_schedule(area, shift, start1, start2, start3, start4, end1, end2, end3, end4, default=False):
+        data = {'schedule_area': area,
+                'schedule_shift': shift,
+                'start1': start1,
+                'start2': start2,
+                'start3': start3,
+                'start4': start4,
+                'end1': end1,
+                'end2': end2,
+                'end3': end3,
+                'end4': end4,
+                }
+        try:
+            s = requests.post('https://{}/api/schedules/config'.format(Config.server), json=data, verify=False)
+            k = requests
+            print(s.json())
+        except ConnectionError:
+            print('server database: connection failed (for update schedule)')
 
