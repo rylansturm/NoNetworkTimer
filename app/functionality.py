@@ -135,14 +135,32 @@ class Andon:
     """ andons -> int; The number of times an operator has signaled an abnormality
         only two buttons interact with the andon system, 'Andon' and 'Respond' """
     andons = 0
+    safety = 0
+    quality = 0
+    delivery = 0
     responded = 0  # used to show how many andons the team leader has already responded to
 
     @staticmethod
     def andon(btn):
-        """ handles the two andon buttons ['Andon', 'Respond'] """
-        if btn == 'Andon':  # operator signals andon, changing LED to red
+        """ handles the andon buttons ['Safety', 'Quality', 'Delivery', 'Respond'] """
+        if btn == 'Andon':  # NO LONGER A VISIBLE BUTTON
             Andon.andons += 1
             t = Thread(target=DB.andon, args=(Plan.kpi,))
+            t.start()
+        if btn == 'Safety':  # operator signals safety andon
+            Andon.safety += 1
+            Andon.andons += 1
+            t = Thread(target=DB.andon, args=(Plan.kpi, 'Safety',))
+            t.start()
+        if btn == 'Quality':  # operator signals quality andon
+            Andon.quality += 1
+            Andon.andons += 1
+            t = Thread(target=DB.andon, args=(Plan.kpi, 'Quality',))
+            t.start()
+        if btn == 'Delivery':
+            Andon.delivery += 1
+            Andon.andons += 1
+            t = Thread(target=DB.andon, args=(Plan.kpi, 'Delivery',))
             t.start()
         if btn == 'Respond':  # team leader responds to andon and resets andon LED
             Andon.responded = Andon.andons
@@ -545,10 +563,11 @@ class DB:
             print('server database: No connection has been made to a server database')
 
     @staticmethod
-    def andon(kpi):
+    def andon(kpi, andon_type):
         if kpi:
             data = {'id_kpi': kpi['id'],
                     'd': str(datetime.datetime.now()),
+                    'andon_type': andon_type,
                     'sequence': Config.sequence_num,
                     'responded': 0,
                     }

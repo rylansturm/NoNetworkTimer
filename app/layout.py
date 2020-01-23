@@ -83,11 +83,12 @@ def layout(app):
 
             with app.frame('Andons', row=0, column=1, rowspan=2):
                 app.setFrameWidth('Andons', 2)
-                app.addButton('Andon', Andon.andon)
-                app.setButtonBg('Andon', '#AAAAAA')
-                app.getButtonWidget('Andon').config(font=font_bold)
-                app.setButtonHeight('Andon', 10)
-                app.setButtonWidth('Andon', 1)
+                for btn in ['Safety', 'Quality', 'Delivery']:
+                    app.addButton(btn, Andon.andon)
+                    app.setButtonBg(btn, '#AAAAAA')
+                    app.getButtonWidget(btn).config(font=font_bold)
+                    app.setButtonHeight(btn, 4)
+                    app.setButtonWidth(btn, 1)
                 app.addButton('Respond', Andon.andon)
                 app.setButtonHeight('Respond', 1)
                 app.setButtonWidth('Respond', 1)
