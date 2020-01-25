@@ -188,7 +188,7 @@ class Andon:
 
 class Timer:
     """ main class for most functionality """
-    window = 3                              # the acceptable range (+/-) for 'on target'
+    window = 2                              # the acceptable range (+/-) for 'on target'
     tCycle = 0                              # the main number displaying on the timer
     mark = datetime.datetime.now()          # every cycle resets the mark. Used for calculating tCycle
     color = 'light grey'                    # current bg color of timer
@@ -260,7 +260,7 @@ class Timer:
         cycle_time = int((Plan.now() - Timer.mark).total_seconds())
         if cycle_time >= 2:
             window = Timer.window * Partsper.partsper
-            if Timer.tCycle < -window:
+            if Timer.tCycle < 0:
                 Timer.late += 1
                 code = 2
             elif Timer.tCycle > window:
@@ -298,7 +298,7 @@ class Timer:
         window = Timer.window * Partsper.partsper
         if Timer.tCycle > window:
             Timer.color = 'light grey'
-        elif -window <= Timer.tCycle <= window:
+        elif 0 <= Timer.tCycle <= window:
             Timer.color = 'yellow'
         else:
             Timer.color = 'red'
