@@ -198,6 +198,7 @@ class Timer:
     total_shift_cycles = 0                  # number of total cycles for the shift
     expected_cycles = 0                     # number of expected cycles so far this block (constantly updating)
     past_10 = ["00:00:00"]                  # a list of the previous ten cycle times
+    last_cycle_difference = 0               # difference between when our last cycle happened and when it should have
     update_history = False                  # boolean to avoid constant updating on loop function
     show_catch_up = False                   # boolean for loop function to launch subWindow
     hide_catch_up = True                    # boolean for loop function to hide subWindow
@@ -246,6 +247,23 @@ class Timer:
         return int(Timer.total_block_cycles() - expected)
 
     @staticmethod
+    def get_last_cycle_difference():
+        """ returns the difference in seconds from our last cycle (mark) and the time it should have happened """
+        start = Plan.schedule.start[Plan.block - 1]
+        seconds_expected = Timer.total_block_cycles() * PCT.planned_cycle_time * Partsper.partsper
+        expected_time = start + datetime.timedelta(seconds=seconds_expected)
+        return int((Timer.mark - expected_time).total_seconds)
+
+
+    @staticmethod
+    def get_next_pct_increment():
+        """ returns a timestamp for the next pct interval """
+        start = Plan.schedule.start[Plan.block - 1]
+        interval = (Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)) + 1
+        timestamp = start + datetime.timedelta(seconds=interval)
+        return timestamp
+
+    @staticmethod
     def get_summary():
         """ creates a summary string of shift and block, allows last block to display before next shift starts """
         Timer.summary = 'Shift:  %s/%s\nBlock: %s/%s' % (Timer.total_shift_cycles,
@@ -275,6 +293,7 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
+            Timer.last_cycle_difference = Timer.get_last_cycle_difference
             if not Plan.kpi:
                 Plan.kpi = Plan.get_kpi()
             t = Thread(target=DB.cycle, args=(str(Timer.mark), cycle_time, Config.sequence_num, Partsper.partsper,
@@ -707,6 +726,8 @@ def function(app):
 
         """ Constantly update the following labels """
         app.setLabel('current_time', Plan.time_format())
+        app.setLabel('next_pct_increment', 'Next: ' + Plan.time_format(Timer.get_next_pct_increment()))
+        app.setLabel('last_cycle_difference', 'Last Cycle: ' + Timer.last_cycle_difference)
         app.setLabel('late', 'Late: %s' % Timer.late)
         app.setLabel('early', 'Early: %s' % Timer.early)
         app.setLabel('on_target', 'On Time: %s' % Timer.on_target)
