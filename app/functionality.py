@@ -727,7 +727,7 @@ def function(app):
         """ Constantly update the following labels """
         app.setLabel('current_time', Plan.time_format())
         app.setLabel('next_pct_increment', 'Next: ' + Plan.time_format(Timer.get_next_pct_increment()))
-        app.setLabel('last_cycle_difference', 'Last Cycle: ' + Timer.last_cycle_difference)
+        app.setLabel('last_cycle_difference', 'Last Cycle: ' + Timer.countdown_format(Timer.last_cycle_difference))
         app.setLabel('late', 'Late: %s' % Timer.late)
         app.setLabel('early', 'Early: %s' % Timer.early)
         app.setLabel('on_target', 'On Time: %s' % Timer.on_target)
