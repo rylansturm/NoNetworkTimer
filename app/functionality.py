@@ -252,14 +252,15 @@ class Timer:
         start = Plan.schedule.start[Plan.block - 1]
         seconds_expected = Timer.total_block_cycles() * PCT.planned_cycle_time * Partsper.partsper
         expected_time = start + datetime.timedelta(seconds=seconds_expected)
-        return int((Timer.mark - expected_time).total_seconds)
+        return int((Timer.mark - expected_time).total_seconds())
 
 
     @staticmethod
     def get_next_pct_increment():
         """ returns a timestamp for the next pct interval """
         start = Plan.schedule.start[Plan.block - 1]
-        interval = (Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)) + 1
+        total_cycles = (Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)) + 1
+        interval = total_cycles * PCT.planned_cycle_time
         timestamp = start + datetime.timedelta(seconds=interval)
         return timestamp
 
@@ -293,7 +294,7 @@ class Timer:
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
-            Timer.last_cycle_difference = Timer.get_last_cycle_difference
+            Timer.last_cycle_difference = Timer.get_last_cycle_difference()
             if not Plan.kpi:
                 Plan.kpi = Plan.get_kpi()
             t = Thread(target=DB.cycle, args=(str(Timer.mark), cycle_time, Config.sequence_num, Partsper.partsper,
