@@ -257,7 +257,7 @@ class Timer:
         start = Plan.schedule.start[Plan.block - 1]
         seconds_expected = Timer.total_block_cycles() * PCT.planned_cycle_time * Partsper.partsper
         expected_time = start + datetime.timedelta(seconds=seconds_expected)
-        return int((Timer.mark - expected_time).total_seconds())
+        return int((expected_time - Timer.mark).total_seconds())
 
 
     @staticmethod
@@ -709,6 +709,7 @@ def function(app):
         elif Plan.now() < Plan.schedule.end[Plan.block-1]:
             app.setLabel('tCycle', Timer.countdown_format(Timer.tCycle))
             app.getLabelWidget('tCycle').config(font='arial 148')
+            app.setLabel('next_pct_increment', 'Next: ' + Plan.time_format(Timer.get_next_pct_increment()))
             Timer.screen_color()
             ahead = Timer.get_ahead()
             current_expected = int(Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time))
@@ -723,6 +724,7 @@ def function(app):
             app.getLabelWidget('tCycle').config(font='arial 64')
             app.setLabel('ahead', Timer.get_summary())
             app.getLabelWidget('ahead').config(font='arial 20')
+            app.setLabel('next_pct_increment', 'Break')
             Timer.color = 'green'
 
         """ raspi is not particularly great at graphical processes, so only assign a new color if needed """
@@ -732,7 +734,6 @@ def function(app):
 
         """ Constantly update the following labels """
         app.setLabel('current_time', Plan.time_format())
-        app.setLabel('next_pct_increment', 'Next: ' + Plan.time_format(Timer.get_next_pct_increment()))
         app.setLabel('last_cycle_difference',
                      'Last Cycle: ' + Timer.countdown_format(Timer.last_cycle_difference, force_pos_neg_label=True))
         app.setLabel('late', 'Late: %s' % Timer.late)
