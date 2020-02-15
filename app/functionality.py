@@ -259,8 +259,8 @@ class Timer:
     def get_next_pct_increment():
         """ returns a timestamp for the next pct interval """
         start = Plan.schedule.start[Plan.block - 1]
-        total_cycles = (Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)) + 1
-        interval = total_cycles * PCT.planned_cycle_time
+        next_cycle_number = (Plan.block_time_elapsed() // (Partsper.partsper * PCT.planned_cycle_time)) + 1
+        interval = next_cycle_number * (Partsper.partsper * PCT.planned_cycle_time)
         timestamp = start + datetime.timedelta(seconds=interval)
         return timestamp
 

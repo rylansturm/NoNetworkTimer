@@ -73,14 +73,14 @@ def layout(app):
                     app.setLabelSubmitFunction('current_time', Plan.set_current_time)
                     column = 0
                     for label in ['last_cycle_difference', 'next_pct_increment']:
-                        app.addLabel(label, row=0, column=column)
+                        app.addLabel(label, row=1, column=column)
                         app.getLabelWidget(label).config(font=font_bold)
                         app.setLabelRelief(label, 'ridge')
                         column += 1
 
                 column = 0
                 for label in ['early', 'late', 'on_target']:
-                    app.addLabel(label, row=1, column=column)
+                    app.addLabel(label, row=2, column=column)
                     app.setLabelRelief(label, 'ridge')
                     app.getLabelWidget(label).config(font=font_bold)
                     app.setLabelSubmitFunction(label, Timer.adjust_cycles)
