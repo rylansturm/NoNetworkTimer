@@ -228,7 +228,7 @@ class Timer:
             Timer.hide_catch_up = True
 
     @staticmethod
-    def countdown_format(seconds: int):
+    def countdown_format(seconds: int, force_pos_neg_label=False):
         """ takes int (seconds) and returns str (":SS", "MM:SS", or "HH:MM:SS") """
         sign = -1 if seconds < 0 else 1
         seconds = seconds * sign
@@ -238,6 +238,11 @@ class Timer:
         hour_label = '%sh:%02d' % (hours, minutes)
         minute_label = '%s:%02d' % (minutes, seconds)
         second_label = sign_label + ':%02d' % seconds
+        if force_pos_neg_label:
+            sign_label = '-' if sign < 0 else '+'
+            hour_label = sign_label + hour_label
+            minute_label = sign_label + minute_label
+            second_label = sign_label + ':%02d' % seconds
         return seconds if hours < 0 else hour_label if hours else minute_label if minutes else second_label
 
     @staticmethod
@@ -728,7 +733,8 @@ def function(app):
         """ Constantly update the following labels """
         app.setLabel('current_time', Plan.time_format())
         app.setLabel('next_pct_increment', 'Next: ' + Plan.time_format(Timer.get_next_pct_increment()))
-        app.setLabel('last_cycle_difference', 'Last Cycle: ' + Timer.countdown_format(Timer.last_cycle_difference))
+        app.setLabel('last_cycle_difference',
+                     'Last Cycle: ' + Timer.countdown_format(Timer.last_cycle_difference, force_pos_neg_label=True))
         app.setLabel('late', 'Late: %s' % Timer.late)
         app.setLabel('early', 'Early: %s' % Timer.early)
         app.setLabel('on_target', 'On Time: %s' % Timer.on_target)
