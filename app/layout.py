@@ -259,9 +259,9 @@ def layout(app):
             app.addButton('schedule_setter_button_0', Plan.schedule_setter,
                           row=3, column=1)
             app.setButton('schedule_setter_button_0', '0')
-            app.addButton('schedule_setter_cancel', Plan.schedule_setter,
-                          row=3, column=2)
-            app.setButton('schedule_setter_cancel', 'Cancel')
+        app.addButton('schedule_setter_cancel', Plan.schedule_setter,
+                      row=3)
+        app.setButton('schedule_setter_cancel', 'Cancel')
 
     app.addStatusbar(fields=3)
 
