@@ -253,15 +253,25 @@ def layout(app):
             app.addEntry('schedule_setter_minute', row=0, column=2)
         with app.frame('schedule_setter_buttons'):
             for btn in range(1, 10):
-                app.addButton('schedule_setter_button_%s' % btn, Plan.schedule_setter,
-                              row=(btn-1)//3, column=(btn-1)%3)
-                app.setButton('schedule_setter_button_%s' % btn, str(btn))
+                button_name = 'schedule_setter_button_%s' % btn
+                app.addButton(button_name, Plan.schedule_setter, row=(btn-1)//3, column=(btn-1)%3)
+                app.setButton(button_name, str(btn))
+                app.getButtonWidget('partsper').config(size='20x20')
             app.addButton('schedule_setter_button_0', Plan.schedule_setter,
-                          row=3, column=1)
+                          row=3, column=0)
             app.setButton('schedule_setter_button_0', '0')
-        app.addButton('schedule_setter_cancel', Plan.schedule_setter,
-                      row=3)
-        app.setButton('schedule_setter_cancel', 'Cancel')
+            # app.setButtonHeight('schedule_setter_button_0', 10)
+            # app.setButtonWidth('schedule_setter_button_0', 10)
+            app.addButton('schedule_setter_back', Plan.schedule_setter,
+                          row=3, column=1)
+            app.setButton('schedule_setter_back', 'Back')
+            # app.setButtonHeight('schedule_setter_back', 10)
+            # app.setButtonWidth('schedule_setter_back', 10)
+            app.addButton('schedule_setter_cancel', Plan.schedule_setter,
+                          row=3, column=2)
+            app.setButton('schedule_setter_cancel', 'Cancel')
+            # app.setButtonHeight('schedule_setter_cancel', 10)
+            # app.setButtonWidth('schedule_setter_cancel', 10)
 
     app.addStatusbar(fields=3)
 
