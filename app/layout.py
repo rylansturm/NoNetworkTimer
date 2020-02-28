@@ -163,7 +163,7 @@ def layout(app):
                                   ['Regular', 'Department Lunch', 'Company Meeting', 'Custom'])
 
             for block in [1, 2, 3, 4]:
-                with app.labelFrame('Block %s' % block, row=block//3, column=(block+1) % 2):
+                with app.labelFrame('Block %s' % block, row=(block//3)+1, column=(block+1) % 2):
                     app.setSticky('new')
                     app.addButton('start%sDN' % block, Plan.adjust_schedule, 0, 0)
                     app.addLabel('start%s' % block, 'start', 0, 1)
