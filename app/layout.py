@@ -176,8 +176,8 @@ def layout(app):
                     for button in ['start%sDN', 'start%sUP', 'end%sDN', 'end%sUP']:
                         app.setButton(button % block, '+5 min' if button[-1] == 'P' else '-5 min')
                     app.addLabel('block%sTime' % block, row=2, colspan=3)
-            app.addLabel('availableTime', row=2, column=0, colspan=2)
-            app.addButtons(['Update Default', 'Use Once'], Plan.update_schedule, row=3, column=0, colspan=2)
+            app.addLabel('availableTime', row=3, column=0, colspan=2)
+            app.addButtons(['Update Default', 'Use Once'], Plan.update_schedule, row=4, column=0, colspan=2)
 
         # Data Tab - Where db configurations are set
         with app.tab('Data'):
