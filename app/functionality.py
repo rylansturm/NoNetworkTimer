@@ -475,6 +475,11 @@ class Plan:
     @staticmethod
     def schedule_setter_launcher(btn):
         Plan.show_schedule_setter = True
+        print(btn)
+
+    @staticmethod
+    def schedule_setter(btn):
+        print(btn)
 
     @staticmethod
     def get_kpi(area=None, shift=None, date=None):
