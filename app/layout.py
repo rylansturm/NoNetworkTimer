@@ -173,6 +173,7 @@ def layout(app):
                     app.addButton('start%sUP' % block, Plan.adjust_schedule, 0, 2)
                     app.addButton('end%sDN' % block, Plan.adjust_schedule, 1, 0)
                     app.addLabel('end%s' % block, 'end', 1, 1)
+                    app.setLabelRelief('end%s' % block, 'raised')
                     app.setLabelSubmitFunction('end%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('end%sUP' % block, Plan.adjust_schedule, 1, 2)
                     for label in ['start%s', 'end%s']:
