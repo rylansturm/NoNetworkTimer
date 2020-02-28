@@ -491,8 +491,11 @@ class Plan:
     def schedule_setter(btn):
         if btn[-1] in [str(i) for i in range(10)]:
             Plan.schedule_setter_data['input'] += btn[-1]
+            if len(Plan.schedule_setter_data['input']) == 1:
+                if int(Plan.schedule_setter_data['input']) > 1:
+                    Plan.schedule_setter_data['input'] = '0' + Plan.schedule_setter_data['input']
         elif btn[-1] == 'k':
-            Plan.schedule_setter_data['input'] = Plan.schedule_setter_data['input'][-1]
+            Plan.schedule_setter_data['input'] = Plan.schedule_setter_data['input'][:-1]
         elif btn[-1] == 'l':
             Plan.close_schedule_setter = True
         elif btn[-2:] == 'AM':
