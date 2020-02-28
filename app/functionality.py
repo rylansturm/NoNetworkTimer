@@ -364,7 +364,8 @@ class Plan:
     adjust_current_time = ('', '')
     update_time = False
     show_schedule_setter = False
-    schedule_setter_data = {}
+    close_schedule_setter = False
+    schedule_setter_data = {'block': '1', 'type': 'start', 'input': '', 'AMPM': ''}
     schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)'
 
     @staticmethod
@@ -478,14 +479,26 @@ class Plan:
     def schedule_setter_launcher(btn):
         Plan.show_schedule_setter = True
         Plan.schedule_setter_data = {'block': btn[-1],
-                                     'type': btn[:-1]}
+                                     'type': btn[:-1],
+                                     'input': '',
+                                     'AMPM': '',
+                                     }
         Plan.schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)' % \
                                        (Plan.schedule_setter_data['block'], Plan.schedule_setter_data['type'])
         print(btn)
 
     @staticmethod
     def schedule_setter(btn):
-        print(btn)
+        if btn[-1] in [str(i) for i in range(10)]:
+            Plan.schedule_setter_data['input'] += btn[-1]
+        elif btn[-1] == 'k':
+            Plan.schedule_setter_data['input'] = Plan.schedule_setter_data['input'][-1]
+        elif btn[-1] == 'l':
+            Plan.close_schedule_setter = True
+        elif btn[-2:] == 'AM':
+            Plan.schedule_setter_data['AMPM'] = 'AM'
+        elif btn[-2:] == 'PM':
+            Plan.schedule_setter_data['AMPM'] = 'PM'
 
     @staticmethod
     def get_kpi(area=None, shift=None, date=None):
@@ -851,6 +864,16 @@ def function(app):
             app.showSubWindow('Schedule Setter')
             Plan.show_schedule_setter = False
             app.setMessage('schedule_setter_message', Plan.schedule_setter_message)
+        if Plan.close_schedule_setter:
+            app.hideSubWindow('Schedule Setter')
+            Plan.close_schedule_setter = False
+
+        app.setEntry('schedule_setter_hour', Plan.schedule_setter_data['input'][:2])
+        if len(Plan.schedule_setter_data['input']) > 2:
+            app.setEntry('schedule_setter_minute', Plan.schedule_setter_data['input'][2:])
+        if len(Plan.schedule_setter_data['input']) == 4:
+            Plan.close_schedule_setter = True
+
 
         """ handles the shut down button; helps prevent accidental shut down """
         if Timer.shut_down_timer:

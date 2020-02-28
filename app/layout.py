@@ -269,26 +269,29 @@ def layout(app):
                 app.setButtonWidth(button_name, 8)
                 app.getButtonWidget(button_name).config(font=font_glance)
 
-            app.addButton('schedule_setter_button_0', Plan.schedule_setter,
-                          row=3, column=0)
+            app.addButton('schedule_setter_button_0', Plan.schedule_setter, row=3, column=0)
             app.setButton('schedule_setter_button_0', '0')
-            app.setButtonHeight('schedule_setter_button_0', 2)
-            app.setButtonWidth('schedule_setter_button_0', 8)
-            app.getButtonWidget('schedule_setter_button_0').config(font=font_glance)
 
-            app.addButton('schedule_setter_back', Plan.schedule_setter,
-                          row=3, column=1)
+            app.addButton('schedule_setter_back', Plan.schedule_setter, row=3, column=1)
             app.setButton('schedule_setter_back', 'Back')
-            app.setButtonHeight('schedule_setter_back', 2)
-            app.setButtonWidth('schedule_setter_back', 8)
-            app.getButtonWidget('schedule_setter_back').config(font=font_glance)
 
-            app.addButton('schedule_setter_cancel', Plan.schedule_setter,
-                          row=3, column=2)
+            app.addButton('schedule_setter_cancel', Plan.schedule_setter, row=3, column=2)
             app.setButton('schedule_setter_cancel', 'Cancel')
-            app.setButtonHeight('schedule_setter_cancel', 2)
-            app.setButtonWidth('schedule_setter_cancel', 8)
-            app.getButtonWidget('schedule_setter_cancel').config(font=font_glance)
+
+            for btn in ['schedule_setter_button_0', 'schedule_setter_back', 'schedule_setter_cancel']:
+                app.setButtonHeight(btn, 2)
+                app.setButtonWidth(btn, 8)
+                app.getButtonWidget(btn).config(font=font_glance)
+
+    with app.subWindow('am_pm_chooser'):
+        for btn in ['AM', 'PM', 'AM_PM_Cancel']:
+            app.addButton(btn, Plan.schedule_setter)
+            app.setButtonHeight(btn, 2)
+            app.setButtonWidth(btn, 8)
+            app.getButtonWidget(btn).config(font=font_glance)
+
+        app.setButton('AM_PM_Cancel', 'Cancel')
+
 
     app.addStatusbar(fields=3)
 
