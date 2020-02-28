@@ -168,6 +168,7 @@ def layout(app):
                     app.setSticky('new')
                     app.addButton('start%sDN' % block, Plan.adjust_schedule, 0, 0)
                     app.addLabel('start%s' % block, 'start', 0, 1)
+                    app.setLabelRelief('start%s' % block, 'raised')
                     app.setLabelSubmitFunction('start%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('start%sUP' % block, Plan.adjust_schedule, 0, 2)
                     app.addButton('end%sDN' % block, Plan.adjust_schedule, 1, 0)
