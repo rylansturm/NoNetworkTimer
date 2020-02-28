@@ -254,40 +254,40 @@ def layout(app):
             app.addEntry('schedule_setter_hour', row=0, column=0)
             app.getEntryWidget('schedule_setter_hour').config(font=font_glance_large)
             app.setEntryMaxLength('schedule_setter_hour', 2)
-            app.setEntryWidth('schedule_setter_hour', 12)
+            app.setEntryWidth('schedule_setter_hour', 6)
             app.addLabel('schedule_setter_colon', ':', row=0, column=1)
             app.addEntry('schedule_setter_minute', row=0, column=2)
             app.getEntryWidget('schedule_setter_minute').config(font=font_glance_large)
             app.setEntryMaxLength('schedule_setter_minute', 2)
-            app.setEntryWidth('schedule_setter_minute', 12)
+            app.setEntryWidth('schedule_setter_minute', 6)
         with app.frame('schedule_setter_buttons'):
             for btn in range(1, 10):
                 button_name = 'schedule_setter_button_%s' % btn
                 app.addButton(button_name, Plan.schedule_setter, row=(btn-1)//3, column=(btn-1)%3)
                 app.setButton(button_name, str(btn))
                 app.setButtonHeight(button_name, 2)
-                app.setButtonWidth(button_name, 12)
+                app.setButtonWidth(button_name, 8)
                 app.getButtonWidget(button_name).config(font=font_glance)
 
             app.addButton('schedule_setter_button_0', Plan.schedule_setter,
                           row=3, column=0)
             app.setButton('schedule_setter_button_0', '0')
             app.setButtonHeight('schedule_setter_button_0', 2)
-            app.setButtonWidth('schedule_setter_button_0', 12)
+            app.setButtonWidth('schedule_setter_button_0', 8)
             app.getButtonWidget('schedule_setter_button_0').config(font=font_glance)
 
             app.addButton('schedule_setter_back', Plan.schedule_setter,
                           row=3, column=1)
             app.setButton('schedule_setter_back', 'Back')
             app.setButtonHeight('schedule_setter_back', 2)
-            app.setButtonWidth('schedule_setter_back', 12)
+            app.setButtonWidth('schedule_setter_back', 8)
             app.getButtonWidget('schedule_setter_back').config(font=font_glance)
 
             app.addButton('schedule_setter_cancel', Plan.schedule_setter,
                           row=3, column=2)
             app.setButton('schedule_setter_cancel', 'Cancel')
             app.setButtonHeight('schedule_setter_cancel', 2)
-            app.setButtonWidth('schedule_setter_cancel', 12)
+            app.setButtonWidth('schedule_setter_cancel', 8)
             app.getButtonWidget('schedule_setter_cancel').config(font=font_glance)
 
     app.addStatusbar(fields=3)
