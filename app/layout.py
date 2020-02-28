@@ -256,8 +256,8 @@ def layout(app):
                 button_name = 'schedule_setter_button_%s' % btn
                 app.addButton(button_name, Plan.schedule_setter, row=(btn-1)//3, column=(btn-1)%3)
                 app.setButton(button_name, str(btn))
-                app.setButtonHeight(button_name, 20)
-                app.setButtonWidth(button_name, 20)
+                app.setButtonHeight(button_name, 3)
+                app.setButtonWidth(button_name, 15)
             app.addButton('schedule_setter_button_0', Plan.schedule_setter,
                           row=3, column=0)
             app.setButton('schedule_setter_button_0', '0')
