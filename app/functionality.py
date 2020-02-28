@@ -875,6 +875,7 @@ def function(app):
             app.setEntry('schedule_setter_minute', '')
         if len(Plan.schedule_setter_data['input']) == 4:
             Plan.close_schedule_setter = True
+            Plan.schedule_setter_data['input'] = ''
 
 
         """ handles the shut down button; helps prevent accidental shut down """
