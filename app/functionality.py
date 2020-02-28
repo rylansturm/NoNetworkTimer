@@ -363,6 +363,7 @@ class Plan:
     set_time = False
     adjust_current_time = ('', '')
     update_time = False
+    show_schedule_setter = False
 
     @staticmethod
     def block_remaining_time():
@@ -470,6 +471,10 @@ class Plan:
         Plan.schedule_adjusted = True
         Plan.block_time = Plan.schedule.block_time()
         Timer.expected_cycles = int(Plan.block_time // PCT.sequence_time())
+
+    @staticmethod
+    def schedule_setter_launcher(btn):
+        Plan.show_schedule_setter = True
 
     @staticmethod
     def get_kpi(area=None, shift=None, date=None):
@@ -829,6 +834,11 @@ def function(app):
         app.setStatusbar('Shift Cycles: %s/%s' % (Timer.total_shift_cycles,
                                                   int(Plan.schedule.available_time() // PCT.sequence_time())),
                          2)
+
+        """ "Schedule Setter" functionality """
+        if Plan.show_schedule_setter:
+            app.showSubWindow('Schedule Setter')
+            Plan.show_schedule_setter = False
 
         """ handles the shut down button; helps prevent accidental shut down """
         if Timer.shut_down_timer:

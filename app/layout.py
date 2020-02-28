@@ -168,8 +168,10 @@ def layout(app):
                     app.setSticky('new')
                     app.addButton('start%sDN' % block, Plan.adjust_schedule, 0, 0)
                     app.addLabel('start%s' % block, 'start', 0, 1)
+                    app.setLabelSubmitFunction('start%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('start%sUP' % block, Plan.adjust_schedule, 0, 2)
                     app.addButton('end%sDN' % block, Plan.adjust_schedule, 1, 0)
+                    app.setLabelSubmitFunction('end%s' % block, Plan.schedule_setter_launcher)
                     app.addLabel('end%s' % block, 'end', 1, 1)
                     app.addButton('end%sUP' % block, Plan.adjust_schedule, 1, 2)
                     for label in ['start%s', 'end%s']:
@@ -240,6 +242,26 @@ def layout(app):
             app.addRadioButton('am_pm', 'AM')
             app.addRadioButton('am_pm', 'PM')
             app.addButton('update current time', Plan.set_current_time)
+
+    with app.subWindow('Schedule Setter'):
+        app.addMessage('schedule_setter_message', 'Enter the time for block %s to %s.\n'
+                                                  'Enter in format (HH:MM)')
+        app.setMessageAlign('schedule_setter_message', 'center')
+        with app.frame('schedule_setter_entry_box'):
+            app.addEntry('schedule_setter_hour', row=0, column=0)
+            app.addLabel('schedule_setter_colon', ':', row=0, column=1)
+            app.addEntry('schedule_setter_hour', row=0, column=2)
+        with app.frame('schedule_setter_buttons'):
+            for btn in range(1, 10):
+                app.addButton('schedule_setter_button_%s' % btn, Plan.schedule_setter,
+                              row=(btn-1)//3, column=(btn-1)%3)
+                app.setButton('schedule_setter_button_%s' % btn, str(btn))
+            app.addButton('schedule_setter_button_0', Plan.schedule_setter,
+                          row=3, column=1)
+            app.setButton('schedule_setter_button_0', '0')
+            app.addButton('schedule_setter_cancel', Plan.schedule_setter,
+                          row=3, column=2)
+            app.setButton('schedule_setter_cancel', 'Cancel')
 
     app.addStatusbar(fields=3)
 
