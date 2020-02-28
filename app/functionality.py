@@ -259,7 +259,6 @@ class Timer:
         expected_time = start + datetime.timedelta(seconds=seconds_expected)
         return int((expected_time - Timer.mark).total_seconds())
 
-
     @staticmethod
     def get_next_pct_increment():
         """ returns a timestamp for the next pct interval """

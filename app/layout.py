@@ -159,6 +159,9 @@ def layout(app):
         with app.tab('Schedule'):
             app.setBg(bg)
 
+            app.addLabelOptionBox('Choose Schedule from Template: ',
+                                  ['Regular', 'Department Lunch', 'Company Meeting', 'Custom'])
+
             for block in [1, 2, 3, 4]:
                 with app.labelFrame('Block %s' % block, row=block//3, column=(block+1) % 2):
                     app.setSticky('new')
