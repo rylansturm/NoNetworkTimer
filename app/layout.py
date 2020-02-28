@@ -171,8 +171,8 @@ def layout(app):
                     app.setLabelSubmitFunction('start%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('start%sUP' % block, Plan.adjust_schedule, 0, 2)
                     app.addButton('end%sDN' % block, Plan.adjust_schedule, 1, 0)
-                    app.setLabelSubmitFunction('end%s' % block, Plan.schedule_setter_launcher)
                     app.addLabel('end%s' % block, 'end', 1, 1)
+                    app.setLabelSubmitFunction('end%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('end%sUP' % block, Plan.adjust_schedule, 1, 2)
                     for label in ['start%s', 'end%s']:
                         app.getLabelWidget(label % block).config(font='arial 24 bold')
