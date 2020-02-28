@@ -27,7 +27,7 @@ font_large = 'arial 60'                 # |
 font_bold = 'arial 16 bold'             # |
 font_tCycle = 'arial 148'               # |
 font_glance = 'arial 24 bold'           # |
-font_glance_large = 'arial 36 bold'     # |
+font_glance_large = 'arial 32 bold'     # |
 
 def layout(app):
     """ a blank appJar.gui object is passed through this function to generate formatting, labels, buttons, etc. """
@@ -254,6 +254,7 @@ def layout(app):
             app.addEntry('schedule_setter_hour', row=0, column=0)
             app.getEntryWidget('schedule_setter_hour').config(font=font_glance_large)
             app.setEntryMaxLength('schedule_setter_hour', 2)
+            app.setEntryWidth('schedule_setter_hour', 12)
             app.addLabel('schedule_setter_colon', ':', row=0, column=1)
             app.addEntry('schedule_setter_minute', row=0, column=2)
             app.getEntryWidget('schedule_setter_minute').config(font=font_glance_large)
