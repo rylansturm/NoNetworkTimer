@@ -545,8 +545,8 @@ class Plan:
         data = {}
         x = 0
         for start, end in [['start' + str(i), 'end' + str(i)] for i in range(1, 5)]:
-            data[start] = Plan.schedule.start[x]
-            data[end] = Plan.schedule.end[x]
+            data[start] = str(Plan.schedule.start[x])
+            data[end] = str(Plan.schedule.end[x])
             x += 1
         data['name'] = 'Regular' if btn == 'Update Default' else 'Custom'
         data['schedule_area'] = Config.area
