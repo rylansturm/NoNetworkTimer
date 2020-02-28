@@ -244,6 +244,7 @@ def layout(app):
             app.addButton('update current time', Plan.set_current_time)
 
     with app.subWindow('Schedule Setter'):
+        app.setSticky('n')
         app.addMessage('schedule_setter_message', 'Enter the time for block %s to %s.\nEnter in format (HH:MM)')
         app.setMessageAlign('schedule_setter_message', 'center')
         app.setMessageAspect('schedule_setter_message', 600)
