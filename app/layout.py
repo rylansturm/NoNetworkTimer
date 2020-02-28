@@ -253,9 +253,11 @@ def layout(app):
         with app.frame('schedule_setter_entry_box'):
             app.addEntry('schedule_setter_hour', row=0, column=0)
             app.getEntryWidget('schedule_setter_hour').config(font=font_glance_large)
+            app.setEntryMaxLength('schedule_setter_hour', 2)
             app.addLabel('schedule_setter_colon', ':', row=0, column=1)
             app.addEntry('schedule_setter_minute', row=0, column=2)
             app.getEntryWidget('schedule_setter_minute').config(font=font_glance_large)
+            app.setEntryMaxLength('schedule_setter_minute', 2)
         with app.frame('schedule_setter_buttons'):
             for btn in range(1, 10):
                 button_name = 'schedule_setter_button_%s' % btn
