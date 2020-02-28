@@ -364,6 +364,8 @@ class Plan:
     adjust_current_time = ('', '')
     update_time = False
     show_schedule_setter = False
+    schedule_setter_data = {}
+    schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)'
 
     @staticmethod
     def block_remaining_time():
@@ -475,6 +477,10 @@ class Plan:
     @staticmethod
     def schedule_setter_launcher(btn):
         Plan.show_schedule_setter = True
+        Plan.schedule_setter_data = {'block': btn[-1],
+                                     'type': btn[:-1]}
+        Plan.schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)' % \
+                                       (Plan.schedule_setter_data['block'], Plan.schedule_setter_data['type'])
         print(btn)
 
     @staticmethod
@@ -844,6 +850,7 @@ def function(app):
         if Plan.show_schedule_setter:
             app.showSubWindow('Schedule Setter')
             Plan.show_schedule_setter = False
+            app.setMessage('schedule_setter_message', Plan.schedule_setter_message)
 
         """ handles the shut down button; helps prevent accidental shut down """
         if Timer.shut_down_timer:
