@@ -249,8 +249,10 @@ def layout(app):
         app.setMessageAspect('schedule_setter_message', 600)
         with app.frame('schedule_setter_entry_box'):
             app.addEntry('schedule_setter_hour', row=0, column=0)
+            app.setEntryHeight('schedule_setter_hour', 3)
             app.addLabel('schedule_setter_colon', ':', row=0, column=1)
             app.addEntry('schedule_setter_minute', row=0, column=2)
+            app.setEntryHeight('schedule_setter_minute', 3)
         with app.frame('schedule_setter_buttons'):
             for btn in range(1, 10):
                 button_name = 'schedule_setter_button_%s' % btn
