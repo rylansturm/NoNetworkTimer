@@ -871,6 +871,8 @@ def function(app):
         app.setEntry('schedule_setter_hour', Plan.schedule_setter_data['input'][:2])
         if len(Plan.schedule_setter_data['input']) > 2:
             app.setEntry('schedule_setter_minute', Plan.schedule_setter_data['input'][2:])
+        else:
+            app.setEntry('schedule_setter_minute', '')
         if len(Plan.schedule_setter_data['input']) == 4:
             Plan.close_schedule_setter = True
 
