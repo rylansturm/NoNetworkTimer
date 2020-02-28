@@ -877,6 +877,9 @@ def function(app):
         else:
             app.setEntry('schedule_setter_minute', '')
         if len(Plan.schedule_setter_data['input']) == 4:
+            if int(Plan.schedule_setter_data['input']) >= 60:
+                Plan.schedule_setter_data['input'] = ''
+                app.errorBox('Incorrect Minute', 'Minute value must be between 0-59', parent='Schedule Setter')
             Plan.close_schedule_setter = True
             Plan.schedule_setter_data['input'] = ''
 
