@@ -159,9 +159,12 @@ def layout(app):
         with app.tab('Schedule'):
             app.setBg(bg)
 
-            app.addLabelOptionBox('Choose Schedule from Template: ',
-                                  ['Regular', 'Department Lunch', 'Company Meeting', 'Custom'],
-                                  row=0, column=0, colspan=2)
+            # app.addLabelOptionBox('Choose Schedule from Template: ',
+            #                       ['Regular', 'Department Lunch', 'Company Meeting', 'Custom'],
+            #                       row=0, column=0, colspan=2)
+
+            app.addLabelOptionBox('Choose Time Delta: ',
+                                  [1, 5, 10], row=0, column=0, colspan=2)
 
             for block in [1, 2, 3, 4]:
                 with app.labelFrame('Block %s' % block, row=(block//3)+1, column=(block+1) % 2):
@@ -169,12 +172,12 @@ def layout(app):
                     app.addButton('start%sDN' % block, Plan.adjust_schedule, 0, 0)
                     app.addLabel('start%s' % block, 'start', 0, 1)
                     app.setLabelRelief('start%s' % block, 'raised')
-                    app.setLabelSubmitFunction('start%s' % block, Plan.schedule_setter_launcher)
+                    # app.setLabelSubmitFunction('start%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('start%sUP' % block, Plan.adjust_schedule, 0, 2)
                     app.addButton('end%sDN' % block, Plan.adjust_schedule, 1, 0)
                     app.addLabel('end%s' % block, 'end', 1, 1)
                     app.setLabelRelief('end%s' % block, 'raised')
-                    app.setLabelSubmitFunction('end%s' % block, Plan.schedule_setter_launcher)
+                    # app.setLabelSubmitFunction('end%s' % block, Plan.schedule_setter_launcher)
                     app.addButton('end%sUP' % block, Plan.adjust_schedule, 1, 2)
                     for label in ['start%s', 'end%s']:
                         app.getLabelWidget(label % block).config(font='arial 24 bold')
@@ -245,53 +248,53 @@ def layout(app):
             app.addRadioButton('am_pm', 'PM')
             app.addButton('update current time', Plan.set_current_time)
 
-    with app.subWindow('Schedule Setter'):
-        app.setSticky('n')
-        app.addMessage('schedule_setter_message', 'Enter the time for block %s to %s.\nEnter in format (HH:MM)')
-        app.setMessageAlign('schedule_setter_message', 'center')
-        app.setMessageAspect('schedule_setter_message', 600)
-        with app.frame('schedule_setter_entry_box'):
-            app.addEntry('schedule_setter_hour', row=0, column=0)
-            app.getEntryWidget('schedule_setter_hour').config(font=font_glance_large)
-            app.setEntryMaxLength('schedule_setter_hour', 2)
-            app.setEntryWidth('schedule_setter_hour', 6)
-            app.addLabel('schedule_setter_colon', ':', row=0, column=1)
-            app.addEntry('schedule_setter_minute', row=0, column=2)
-            app.getEntryWidget('schedule_setter_minute').config(font=font_glance_large)
-            app.setEntryMaxLength('schedule_setter_minute', 2)
-            app.setEntryWidth('schedule_setter_minute', 6)
-        with app.frame('schedule_setter_buttons'):
-            for btn in range(1, 10):
-                button_name = 'schedule_setter_button_%s' % btn
-                app.addButton(button_name, Plan.schedule_setter, row=(btn-1)//3, column=(btn-1)%3)
-                app.setButton(button_name, str(btn))
-                app.setButtonHeight(button_name, 2)
-                app.setButtonWidth(button_name, 8)
-                app.getButtonWidget(button_name).config(font=font_glance)
-
-            app.addButton('schedule_setter_button_0', Plan.schedule_setter, row=3, column=0)
-            app.setButton('schedule_setter_button_0', '0')
-
-            app.addButton('schedule_setter_back', Plan.schedule_setter, row=3, column=1)
-            app.setButton('schedule_setter_back', 'Back')
-
-            app.addButton('schedule_setter_cancel', Plan.schedule_setter, row=3, column=2)
-            app.setButton('schedule_setter_cancel', 'Cancel')
-
-            for btn in ['schedule_setter_button_0', 'schedule_setter_back', 'schedule_setter_cancel']:
-                app.setButtonHeight(btn, 2)
-                app.setButtonWidth(btn, 8)
-                app.getButtonWidget(btn).config(font=font_glance)
-
-    with app.subWindow('am_pm_chooser'):
-        for btn in ['AM', 'PM', 'AM_PM_Cancel']:
-            app.addButton(btn, Plan.schedule_setter)
-            app.setButtonHeight(btn, 2)
-            app.setButtonWidth(btn, 8)
-            app.getButtonWidget(btn).config(font=font_glance)
-
-        app.setButton('AM_PM_Cancel', 'Cancel')
-
+    # with app.subWindow('Schedule Setter'):
+    #     app.setSticky('n')
+    #     app.addMessage('schedule_setter_message', 'Enter the time for block %s to %s.\nEnter in format (HH:MM)')
+    #     app.setMessageAlign('schedule_setter_message', 'center')
+    #     app.setMessageAspect('schedule_setter_message', 600)
+    #     with app.frame('schedule_setter_entry_box'):
+    #         app.addEntry('schedule_setter_hour', row=0, column=0)
+    #         app.getEntryWidget('schedule_setter_hour').config(font=font_glance_large)
+    #         app.setEntryMaxLength('schedule_setter_hour', 2)
+    #         app.setEntryWidth('schedule_setter_hour', 6)
+    #         app.addLabel('schedule_setter_colon', ':', row=0, column=1)
+    #         app.addEntry('schedule_setter_minute', row=0, column=2)
+    #         app.getEntryWidget('schedule_setter_minute').config(font=font_glance_large)
+    #         app.setEntryMaxLength('schedule_setter_minute', 2)
+    #         app.setEntryWidth('schedule_setter_minute', 6)
+    #     with app.frame('schedule_setter_buttons'):
+    #         for btn in range(1, 10):
+    #             button_name = 'schedule_setter_button_%s' % btn
+    #             app.addButton(button_name, Plan.schedule_setter, row=(btn-1)//3, column=(btn-1)%3)
+    #             app.setButton(button_name, str(btn))
+    #             app.setButtonHeight(button_name, 2)
+    #             app.setButtonWidth(button_name, 8)
+    #             app.getButtonWidget(button_name).config(font=font_glance)
+    #
+    #         app.addButton('schedule_setter_button_0', Plan.schedule_setter, row=3, column=0)
+    #         app.setButton('schedule_setter_button_0', '0')
+    #
+    #         app.addButton('schedule_setter_back', Plan.schedule_setter, row=3, column=1)
+    #         app.setButton('schedule_setter_back', 'Back')
+    #
+    #         app.addButton('schedule_setter_cancel', Plan.schedule_setter, row=3, column=2)
+    #         app.setButton('schedule_setter_cancel', 'Cancel')
+    #
+    #         for btn in ['schedule_setter_button_0', 'schedule_setter_back', 'schedule_setter_cancel']:
+    #             app.setButtonHeight(btn, 2)
+    #             app.setButtonWidth(btn, 8)
+    #             app.getButtonWidget(btn).config(font=font_glance)
+    #
+    # with app.subWindow('am_pm_chooser'):
+    #     for btn in ['AM', 'PM', 'AM_PM_Cancel']:
+    #         app.addButton(btn, Plan.schedule_setter)
+    #         app.setButtonHeight(btn, 2)
+    #         app.setButtonWidth(btn, 8)
+    #         app.getButtonWidget(btn).config(font=font_glance)
+    #
+    #     app.setButton('AM_PM_Cancel', 'Cancel')
+    #
 
     app.addStatusbar(fields=3)
 

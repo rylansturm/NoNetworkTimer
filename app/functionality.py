@@ -356,6 +356,7 @@ class Plan:
     shift = schedule.shift_select()
     new_shift = True
     schedule_adjusted = False
+    schedule_adjust_delta = 5
     block = 0
     block_time = 0
     total_time = 0
@@ -363,10 +364,10 @@ class Plan:
     set_time = False
     adjust_current_time = ('', '')
     update_time = False
-    show_schedule_setter = False
-    close_schedule_setter = False
-    schedule_setter_data = {'block': '1', 'type': 'start', 'input': '', 'AMPM': ''}
-    schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)'
+    # show_schedule_setter = False
+    # close_schedule_setter = False
+    # schedule_setter_data = {'block': '1', 'type': 'start', 'input': '', 'AMPM': ''}
+    # schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)'
 
     @staticmethod
     def block_remaining_time():
@@ -445,7 +446,7 @@ class Plan:
                   'Day':    (7, 15),
                   'Swing':  (15, 23)
                   }
-        delta = datetime.timedelta(minutes=5)
+        delta = datetime.timedelta(minutes=Plan.schedule_adjust_delta)
         time = btn[0]
         direction = btn[-2]
         block = int(btn[-3]) - 1
@@ -475,34 +476,49 @@ class Plan:
         Plan.block_time = Plan.schedule.block_time()
         Timer.expected_cycles = int(Plan.block_time // PCT.sequence_time())
 
-    @staticmethod
-    def schedule_setter_launcher(btn):
-        Plan.show_schedule_setter = True
-        Plan.schedule_setter_data = {'block': btn[-1],
-                                     'type': btn[:-1],
-                                     'input': '',
-                                     'AMPM': '',
-                                     }
-        Plan.schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)' % \
-                                       (Plan.schedule_setter_data['block'], Plan.schedule_setter_data['type'])
-        print(btn)
-
-    @staticmethod
-    def schedule_setter(btn):
-        if btn[-1] in [str(i) for i in range(10)]:
-            Plan.schedule_setter_data['input'] += btn[-1]
-            if len(Plan.schedule_setter_data['input']) == 1:
-                if int(Plan.schedule_setter_data['input']) > 1:
-                    Plan.schedule_setter_data['input'] = '0' + Plan.schedule_setter_data['input']
-        elif btn[-1] == 'k':
-            Plan.schedule_setter_data['input'] = Plan.schedule_setter_data['input'][:-1]
-        elif btn[-1] == 'l':
-            Plan.close_schedule_setter = True
-        elif btn[-2:] == 'AM':
-            Plan.schedule_setter_data['AMPM'] = 'AM'
-        elif btn[-2:] == 'PM':
-            Plan.schedule_setter_data['AMPM'] = 'PM'
-
+    # @staticmethod
+    # def change_schedule(data):
+    #     """ This method differs from adjust_schedule in that it takes a numeric input and sets it,
+    #         rather than adjusting by a fixed amount (allowing start/stop times not on the 5 min interval) """
+    #     shifts = {'Grave':  (23, 7),
+    #               'Day':    (7, 15),
+    #               'Swing':  (15, 23)
+    #               }
+    #     block = int(data['block']) -1
+    #     startend = data['type']
+    #     time_input = data['input'] + data['AMPM']
+    #     new_time = datetime.datetime.time(datetime.datetime.strptime(time_input, '%H%M%p'))
+    #
+    #
+    # @staticmethod
+    # def schedule_setter_launcher(btn):
+    #     Plan.show_schedule_setter = True
+    #     Plan.schedule_setter_data = {'block': btn[-1],
+    #                                  'type': btn[:-1],
+    #                                  'input': '',
+    #                                  'AMPM': '',
+    #                                  }
+    #     Plan.schedule_setter_message = 'Enter the time for block %s to %s.\nEnter in format (HH:MM)' % \
+    #                                    (Plan.schedule_setter_data['block'], Plan.schedule_setter_data['type'])
+    #     print(btn)
+    #
+    # @staticmethod
+    # def schedule_setter(btn):
+    #     if btn[-1] in [str(i) for i in range(10)]:
+    #         Plan.schedule_setter_data['input'] += btn[-1]
+    #         if len(Plan.schedule_setter_data['input']) == 1:
+    #             if int(Plan.schedule_setter_data['input']) > 1:
+    #                 Plan.schedule_setter_data['input'] = '0' + Plan.schedule_setter_data['input']
+    #     elif btn[-1] == 'k':
+    #         Plan.schedule_setter_data['input'] = Plan.schedule_setter_data['input'][:-1]
+    #     elif btn[-1] == 'l':
+    #         Plan.close_schedule_setter = True
+    #     elif btn[-2:] == 'AM':
+    #         Plan.schedule_setter_data['AMPM'] = 'AM'
+    #     elif btn[-2:] == 'PM':
+    #         Plan.schedule_setter_data['AMPM'] = 'PM'
+    #
+    #
     @staticmethod
     def get_kpi(area=None, shift=None, date=None):
         """ connects to api and looks for a kpi object for current shift """
@@ -862,28 +878,38 @@ def function(app):
                                                   int(Plan.schedule.available_time() // PCT.sequence_time())),
                          2)
 
-        """ "Schedule Setter" functionality """
-        if Plan.show_schedule_setter:
-            app.showSubWindow('Schedule Setter')
-            Plan.show_schedule_setter = False
-            app.setMessage('schedule_setter_message', Plan.schedule_setter_message)
-        if Plan.close_schedule_setter:
-            app.hideSubWindow('Schedule Setter')
-            Plan.close_schedule_setter = False
 
-        app.setEntry('schedule_setter_hour', Plan.schedule_setter_data['input'][:2])
-        if len(Plan.schedule_setter_data['input']) > 2:
-            app.setEntry('schedule_setter_minute', Plan.schedule_setter_data['input'][2:])
-        else:
-            app.setEntry('schedule_setter_minute', '')
-        if len(Plan.schedule_setter_data['input']) == 4:
-            if int(Plan.schedule_setter_data['input'][2:]) >= 60:
-                Plan.schedule_setter_data['input'] = ''
-                app.errorBox('Incorrect Minute', 'Minute value must be between 0-59')
-            Plan.close_schedule_setter = True
-            Plan.schedule_setter_data['input'] = ''
+        """ Look for changes to Plan.schedule_adjust_delta """
+        if int(app.getOptionBox('Choose Time Delta: ')) != Plan.schedule_adjust_delta:
+            Plan.schedule_adjust_delta = int(app.getOptionBox('Choose Time Delta: '))
+            for block in [1, 2, 3, 4]:
+                for button in ['start%sDN', 'start%sUP', 'end%sDN', 'end%sUP']:
+                    app.setButton(button % block,
+                                  '+%s min' % Plan.schedule_adjust_delta if button[-1] == 'P' else
+                                  '-%s min' % Plan.schedule_adjust_delta)
 
-
+        # """ "Schedule Setter" functionality """
+        # if Plan.show_schedule_setter:
+        #     app.showSubWindow('Schedule Setter')
+        #     Plan.show_schedule_setter = False
+        #     app.setMessage('schedule_setter_message', Plan.schedule_setter_message)
+        # if Plan.close_schedule_setter:
+        #     app.hideSubWindow('Schedule Setter')
+        #     Plan.close_schedule_setter = False
+        #
+        # app.setEntry('schedule_setter_hour', Plan.schedule_setter_data['input'][:2])
+        # if len(Plan.schedule_setter_data['input']) > 2:
+        #     app.setEntry('schedule_setter_minute', Plan.schedule_setter_data['input'][2:])
+        # else:
+        #     app.setEntry('schedule_setter_minute', '')
+        # if len(Plan.schedule_setter_data['input']) == 4:
+        #     if int(Plan.schedule_setter_data['input'][2:]) >= 60:
+        #         Plan.schedule_setter_data['input'] = ''
+        #         app.errorBox('Incorrect Minute', 'Minute value must be between 0-59')
+        #     Plan.close_schedule_setter = True
+        #     Plan.schedule_setter_data['input'] = ''
+        #
+        #
         """ handles the shut down button; helps prevent accidental shut down """
         if Timer.shut_down_timer:
             Timer.shut_down_timer -= 1

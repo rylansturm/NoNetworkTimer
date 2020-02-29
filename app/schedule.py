@@ -53,6 +53,8 @@ class Schedule:
 
     @staticmethod
     def shift_select(now=None):
+        """ Returns the shift name {str} wherein lies the given time (now arg).
+            If no time is provided, the current timestamp will be used. """
         if not now:
             now = datetime.datetime.now()
         if now.hour < 7:
@@ -66,6 +68,8 @@ class Schedule:
 
     @staticmethod
     def combine(now, time):
+        """ Returns a datetime object that falls within the current shift.
+            This allows Schedule objects to be created before or after midnight for Grave. """
         date = datetime.datetime.today()
         if now.hour >= 23:
             if time.hour <= 7:
