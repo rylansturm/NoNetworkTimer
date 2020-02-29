@@ -164,7 +164,7 @@ def layout(app):
             #                       row=0, column=0, colspan=2)
 
             app.addLabelOptionBox('Choose Time Delta: ',
-                                  [1, 5, 10], row=0, column=0, colspan=2)
+                                  [1, 5, 10], row=0, column=0, colspan=1)
 
             for block in [1, 2, 3, 4]:
                 with app.labelFrame('Block %s' % block, row=(block//3)+1, column=(block+1) % 2):
