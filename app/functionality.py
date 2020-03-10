@@ -41,6 +41,7 @@ import sqlite3
 from sqlite3 import OperationalError
 import requests
 from threading import Thread
+from statistics import stdev
 
 
 """
@@ -197,7 +198,10 @@ class Timer:
     on_target = 0                           # number of on_target cycles this block
     total_shift_cycles = 0                  # number of total cycles for the shift
     expected_cycles = 0                     # number of expected cycles so far this block (constantly updating)
-    past_10 = ["00:00:00"]                  # a list of the previous ten cycle times
+    past_24_for_calculation = []
+    stdev_24 = 0
+    mean_24 = 0
+    past_24_countdown_format = ["00:00:00"]                  # a list of the previous ten cycle times
     last_cycle_difference = 0               # difference between when our last cycle happened and when it should have
     update_history = False                  # boolean to avoid constant updating on loop function
     show_catch_up = False                   # boolean for loop function to launch subWindow
@@ -293,9 +297,11 @@ class Timer:
             else:
                 Timer.on_target += 1
                 code = 1
-            Timer.past_10.append(Timer.countdown_format(int((Plan.now() - Timer.mark).total_seconds())))
-            if len(Timer.past_10) > 10:
-                Timer.past_10 = Timer.past_10[1:]
+            Timer.past_24_for_calculation.append(int((Plan.now() - Timer.mark).total_seconds()))
+            Timer.past_24_countdown_format.append(Timer.countdown_format(int((Plan.now() - Timer.mark).total_seconds())))
+            if len(Timer.past_24_countdown_format) > 24:
+                Timer.past_24_countdown_format = Timer.past_24_countdown_format[1:]
+                Timer.past_24_for_calculation = Timer.past_24_for_calculation[1:]
             Timer.mark = Plan.now()
             Timer.update_history = True
             Timer.total_shift_cycles += 1
@@ -740,8 +746,12 @@ def function(app):
 
         """ This was a quick way to ensure I only updated this list when a new cycle happened, not constantly """
         if Timer.update_history:
-            app.changeOptionBox('past_10', Timer.past_10)
-            app.setOptionBox('past_10', Timer.past_10[-1])
+            app.changeOptionBox('past_10', Timer.past_24_countdown_format)
+            app.setOptionBox('past_10', Timer.past_24_countdown_format[-1])
+            app.setLabel('mean_24', 'Mean (24): %.1f' %
+                         (sum(Timer.past_24_for_calculation)/len(Timer.past_24_for_calculation)))
+            app.setLabel('stdev_24', 'STD DEV (24): %.2f' %
+                         stdev(Timer.past_24_for_calculation))
             Timer.update_history = False
 
         """ 

@@ -86,7 +86,9 @@ def layout(app):
                     app.getLabelWidget(label).config(font=font_bold)
                     app.setLabelSubmitFunction(label, Timer.adjust_cycles)
                     column += 1
-                app.addOptionBox('past_10', ['00:00:00'], row=2, column=3)
+                app.addLabel('mean_24', 'Mean (24): 0', row=3, column=0)
+                app.addLabel('stdev_24', 'STD DEV (24): 0', row=3, column=1)
+                app.addOptionBox('past_10', ['00:00:00'], row=3, column=2)
 
             with app.frame('Andons', row=0, column=1, rowspan=2):
                 app.setFrameWidth('Andons', 2)
