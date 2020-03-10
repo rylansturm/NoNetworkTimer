@@ -192,7 +192,7 @@ def layout(app):
         with app.tab('Data'):
             app.setBg(bg)
 
-            app.addLabelCheckBox('screen_cycle_enabled', row=0, column=0)
+            app.addCheckBox('screen_cycle_enabled', row=0, column=0)
 
             with app.frame('db_entries', row=1, column=0):
                 app.setSticky('')
