@@ -59,6 +59,7 @@ def layout(app):
                 app.addLabel('tCycle', row=0, column=0)
                 app.setLabelSticky('tCycle', 'news')
                 app.getLabelWidget('tCycle').config(font=font_tCycle)
+                app.setLabelSubmitFunction('tCycle', Timer.screen_cycle_button)
 
             with app.frame('totals', row=1, column=0):
 
@@ -191,7 +192,9 @@ def layout(app):
         with app.tab('Data'):
             app.setBg(bg)
 
-            with app.frame('db_entries', row=0, column=0):
+            app.addLabelCheckBox('screen_cycle_enabled', row=0, column=0)
+
+            with app.frame('db_entries', row=1, column=0):
                 app.setSticky('')
                 app.addLabelOptionBox('db_type', ['local', 'server - api'])
                 app.addLabelEntry('db_server')
@@ -210,7 +213,7 @@ def layout(app):
                     app.setButtonFg(button, 'red')
                     app.setButtonBg(button, 'black')
 
-            with app.frame('password', row=0, column=1):
+            with app.frame('password', row=0, column=1, rowspan=2):
                 for button in range(1, 10):
                     name = '%s_password' % button
                     app.addButton(name, DB.enter_password, row=((button - 1) // 3) + 1, column=(button + 2) % 3)

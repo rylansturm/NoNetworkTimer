@@ -207,6 +207,7 @@ class Timer:
     shut_down_count = 0                     # the number of times the button has been pressed (requires 3)
     summary = "Shift:  0/0\nBlock: 0/0"     # displays between shifts/blocks so last block isn't lost
     restart = False                         # restarts timer when necessary
+    screen_cycle_button_enabled = False     # boolean for enabling a screen press to cycle the timer
 
     @staticmethod
     def get_tcycle():
@@ -304,6 +305,11 @@ class Timer:
             t = Thread(target=DB.cycle, args=(str(Timer.mark), cycle_time, Config.sequence_num, Partsper.partsper,
                                               Timer.total_shift_cycles, code,  Plan.kpi))
             t.start()
+
+    @staticmethod
+    def screen_cycle_button():
+        if Timer.screen_cycle_button_enabled:
+            Timer.cycle()
 
     @staticmethod
     def total_block_cycles():
@@ -729,6 +735,8 @@ def function(app):
 
         """ Timer.tCycle is the main number displaying on the timer """
         Timer.tCycle = Timer.get_tcycle()
+
+        Timer.screen_cycle_button_enabled = app.getCheckBox('screen_cycle_enabled')
 
         """ This was a quick way to ensure I only updated this list when a new cycle happened, not constantly """
         if Timer.update_history:
