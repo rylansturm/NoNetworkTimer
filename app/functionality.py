@@ -750,8 +750,9 @@ def function(app):
             app.setOptionBox('past_10', Timer.past_24_countdown_format[-1])
             app.setLabel('mean_24', 'Mean (24): %.1f' %
                          (sum(Timer.past_24_for_calculation)/len(Timer.past_24_for_calculation)))
-            app.setLabel('stdev_24', 'STD DEV (24): %.2f' %
-                         stdev(Timer.past_24_for_calculation))
+            if len(Timer.past_24_for_calculation) > 1:
+                app.setLabel('stdev_24', 'STD DEV (24): %.2f' %
+                             stdev(Timer.past_24_for_calculation))
             Timer.update_history = False
 
         """ 
