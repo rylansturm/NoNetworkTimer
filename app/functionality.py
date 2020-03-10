@@ -748,11 +748,18 @@ def function(app):
         if Timer.update_history:
             app.changeOptionBox('past_10', Timer.past_24_countdown_format)
             app.setOptionBox('past_10', Timer.past_24_countdown_format[-1])
-            app.setLabel('mean_24', 'Mean (24): %.1f' %
-                         (sum(Timer.past_24_for_calculation)/len(Timer.past_24_for_calculation)))
+            Timer.mean_24 = sum(Timer.past_24_for_calculation)/len(Timer.past_24_for_calculation)
+            app.setLabel('mean_24', 'Mean (24): %.1f' % Timer.mean_24)
             if len(Timer.past_24_for_calculation) > 1:
-                app.setLabel('stdev_24', 'STD DEV (24): %.2f' %
-                             stdev(Timer.past_24_for_calculation))
+                Timer.stdev_24 = stdev(Timer.past_24_for_calculation)
+                app.setLabel('stdev_24', 'STD DEV (24): %.2f' % Timer.stdev_24)
+                if Timer.stdev_24 <= 2:
+                    app.setLabelBg('stdev_24', 'green')
+                elif Timer.stdev_24 <= 5:
+                    app.setLabelBg('stdev_24', 'yellow')
+                else:
+                    app.setLabelBg('stdev_24', 'red')
+
             Timer.update_history = False
 
         """ 
