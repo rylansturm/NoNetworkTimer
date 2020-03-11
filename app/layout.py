@@ -89,6 +89,8 @@ def layout(app):
                 app.addLabel('mean_24', 'Mean (24): 0', row=3, column=0)
                 app.addLabel('stdev_24', 'STD DEV (24): 0', row=3, column=1)
                 app.addOptionBox('past_10', ['00:00:00'], row=3, column=2)
+                for label in ['mean_24', 'stdev_24']:
+                    app.setLabelRelief(label, 'ridge')
 
             with app.frame('Andons', row=0, column=1, rowspan=2):
                 app.setFrameWidth('Andons', 2)

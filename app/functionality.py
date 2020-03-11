@@ -749,13 +749,13 @@ def function(app):
             app.changeOptionBox('past_10', Timer.past_24_countdown_format)
             app.setOptionBox('past_10', Timer.past_24_countdown_format[-1])
             Timer.mean_24 = sum(Timer.past_24_for_calculation)/len(Timer.past_24_for_calculation)
-            app.setLabel('mean_24', 'Mean (24): %.1f' % Timer.mean_24)
+            app.setLabel('mean_24', 'Mean (24): %.1f s' % Timer.mean_24)
             if len(Timer.past_24_for_calculation) > 1:
                 Timer.stdev_24 = stdev(Timer.past_24_for_calculation)
-                app.setLabel('stdev_24', 'STD DEV (24): %.2f' % Timer.stdev_24)
-                if Timer.stdev_24 <= 2:
+                app.setLabel('stdev_24', 'STD DEV (24): %.1f s' % Timer.stdev_24)
+                if Timer.stdev_24 <= 2*Partsper.partsper:
                     app.setLabelBg('stdev_24', 'green')
-                elif Timer.stdev_24 <= 5:
+                elif Timer.stdev_24 <= 5*Partsper.partsper:
                     app.setLabelBg('stdev_24', 'yellow')
                 else:
                     app.setLabelBg('stdev_24', 'red')
