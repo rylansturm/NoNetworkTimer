@@ -57,24 +57,22 @@ class Schedule:
             If no time is provided, the current timestamp will be used. """
         if not now:
             now = datetime.datetime.now()
-        if now.hour < 7:
-            return 'Grave'
+        if now.hour < 3:
+            return 'Swing'
         elif now.hour < 15:
             return 'Day'
-        elif now.hour < 23:
-            return 'Swing'
         else:
-            return 'Grave'
+            return 'Swing'
 
     @staticmethod
     def combine(now, time):
         """ Returns a datetime object that falls within the current shift.
             This allows Schedule objects to be created before or after midnight for Grave. """
         date = datetime.datetime.today()
-        if now.hour >= 23:
-            if time.hour <= 7:
+        if now.hour >= 15:
+            if time.hour <= 3:
                 date += datetime.timedelta(days=1)
-        elif now.hour < 7:
-            if time.hour >= 23:
+        elif now.hour < 3:
+            if time.hour >= 15:
                 date -= datetime.timedelta(days=1)
         return datetime.datetime.combine(date, time)

@@ -455,9 +455,8 @@ class Plan:
     @staticmethod
     def adjust_schedule(btn):
         """ handles the button pushes on the schedule tab """
-        shifts = {'Grave':  (23, 7),
-                  'Day':    (7, 15),
-                  'Swing':  (15, 23)
+        shifts = {'Day':    (3, 15),
+                  'Swing':  (15, 3),
                   }
         delta = datetime.timedelta(minutes=Plan.schedule_adjust_delta)
         time = btn[0]
@@ -470,9 +469,9 @@ class Plan:
             if block != 0 and Plan.schedule.start[block] < Plan.schedule.end[block-1]:
                 Plan.schedule.start[block] += delta
             if Plan.schedule.start[block].hour < shifts[Plan.shift][0]:
-                if Plan.shift != 'Grave':
+                if Plan.shift == 'Day':
                     Plan.schedule.start[block] += delta
-                elif Plan.schedule.start[block].hour == 22:
+                elif Plan.schedule.start[block].hour == 14:
                     Plan.schedule.start[block] += delta
         elif time == 'e':
             Plan.schedule.end[block] += delta if direction == 'U' else -delta
@@ -480,10 +479,10 @@ class Plan:
                 Plan.schedule.end[block] = Plan.schedule.start[block]
             if block != 3 and Plan.schedule.end[block] > Plan.schedule.start[block+1]:
                 Plan.schedule.end[block] -= delta
-            if Plan.schedule.end[block].hour == shifts[Plan.shift][1] and Plan.schedule.end[block].minute > 15:
-                if Plan.shift != 'Grave':
+            if Plan.schedule.end[block].hour == shifts[Plan.shift][1] and Plan.schedule.end[block].minute > 30:
+                if Plan.shift == 'Day':
                     Plan.schedule.end[block] -= delta
-                elif Plan.schedule.end[block].hour == 7 and Plan.schedule.end[block].minute > 15:
+                elif Plan.schedule.end[block].hour == 3 and Plan.schedule.end[block].minute > 30:
                     Plan.schedule.end[block] -= delta
         Plan.schedule_adjusted = True
         Plan.block_time = Plan.schedule.block_time()
@@ -905,7 +904,6 @@ def function(app):
                                                   int(Plan.schedule.available_time() // PCT.sequence_time())),
                          2)
 
-
         """ Look for changes to Plan.schedule_adjust_delta """
         if int(app.getOptionBox('Choose Time Delta: ')) != Plan.schedule_adjust_delta:
             Plan.schedule_adjust_delta = int(app.getOptionBox('Choose Time Delta: '))
@@ -1054,6 +1052,6 @@ def function(app):
 
     app.registerEvent(counting)  # make the "counting" function loop continuously
     app.setPollTime(50)  # the time in milliseconds between each loop of the "counting" function (roughly)
-    app.bindKey('<space>', Timer.cycle)
+    # app.bindKey('<space>', Timer.cycle)
     app.bindKey('1', Timer.cycle)
     return app
